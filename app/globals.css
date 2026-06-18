@@ -95,6 +95,24 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
+/* Slow decorative rotation for guilloche backgrounds. Non interactive, and the
+   reduced-motion block below disables it. */
+@keyframes cxnet-drift {
+  to {
+    transform: rotate(360deg);
+  }
+}
+.cxnet-drift {
+  animation: cxnet-drift 140s linear infinite;
+}
+
+/* Soft shimmer for loading skeletons. */
+@keyframes cxnet-shimmer {
+  100% {
+    transform: translateX(100%);
+  }
+}
+
 /* Oxblood focus ring, visible and consistent across interactive elements. */
 :focus-visible {
   outline: 2px solid var(--red-bright);
