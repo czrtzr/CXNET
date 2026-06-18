@@ -1,0 +1,114 @@
+@import "tailwindcss";
+
+/*
+  CXNET design tokens — the single source of truth.
+  Nothing ad hoc downstream. Every color, font, and radius the app uses
+  is declared here once and consumed as a Tailwind utility or var().
+  Dark luxury only: there is no light theme.
+*/
+
+:root {
+  /* Surfaces — warm near-black, faint brown cast, never cold blue-black */
+  --bg-deep: #0a0807;
+  --surface: #15120f;
+  --surface-raised: #1d1813;
+  --surface-hover: #251f19;
+
+  /* Hairline borders — warm white at low opacity */
+  --border: rgba(233, 214, 190, 0.08);
+  --border-strong: rgba(233, 214, 190, 0.14);
+
+  /* Oxblood — the primary interactive accent */
+  --red: #7a1620;
+  --red-bright: #9b2230;
+  --red-deep: #4d0e15;
+
+  /* Leather — structural and decorative */
+  --leather: #5e3d24;
+  --leather-light: #7a5234;
+  --leather-deep: #3a2415;
+
+  /* Brass — restrained metallic, engraving and wax-seal rims only */
+  --brass: #b08d57;
+
+  /* Text — warm white, never pure white */
+  --text: #f1ece4;
+  --text-muted: rgba(241, 236, 228, 0.45);
+  --text-faint: rgba(241, 236, 228, 0.28);
+
+  /* Gains and losses */
+  --pos: #5f8b6a;
+  --neg: #9b2230;
+}
+
+/*
+  Map tokens into Tailwind's theme so utilities exist:
+  bg-bg-deep, bg-surface, text-text, text-muted, border-border, text-red, etc.
+  Font families are bound to the next/font CSS variables set in layout.tsx.
+*/
+@theme inline {
+  --color-bg-deep: var(--bg-deep);
+  --color-surface: var(--surface);
+  --color-surface-raised: var(--surface-raised);
+  --color-surface-hover: var(--surface-hover);
+
+  --color-border: var(--border);
+  --color-border-strong: var(--border-strong);
+
+  --color-red: var(--red);
+  --color-red-bright: var(--red-bright);
+  --color-red-deep: var(--red-deep);
+
+  --color-leather: var(--leather);
+  --color-leather-light: var(--leather-light);
+  --color-leather-deep: var(--leather-deep);
+
+  --color-brass: var(--brass);
+
+  --color-text: var(--text);
+  --color-text-muted: var(--text-muted);
+  --color-text-faint: var(--text-faint);
+
+  --color-pos: var(--pos);
+  --color-neg: var(--neg);
+
+  --font-serif: var(--font-fraunces);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+
+  /* Square corners. Cards never round past 4px. */
+  --radius-xs: 2px;
+  --radius-sm: 3px;
+  --radius: 4px;
+}
+
+html {
+  color-scheme: dark;
+}
+
+body {
+  background: var(--bg-deep);
+  color: var(--text);
+  font-family: var(--font-sans), system-ui, sans-serif;
+  /* Tabular figures everywhere money or counts appear. */
+  font-variant-numeric: tabular-nums;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Oxblood focus ring, visible and consistent across interactive elements. */
+:focus-visible {
+  outline: 2px solid var(--red-bright);
+  outline-offset: 2px;
+}
+
+/* Reduced motion: collapse every animation to its final state instantly. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+}

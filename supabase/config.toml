@@ -1,0 +1,8 @@
+# Minimal Supabase CLI config for CXNET.
+# This is enough to link a hosted project and push migrations:
+#   supabase link --project-ref <your-project-ref>
+#   supabase db push
+#
+# If you also want a local stack (supabase start), run `supabase init` once to
+# generate the full default config, then keep this project_id.
+project_id = "cxnet"
