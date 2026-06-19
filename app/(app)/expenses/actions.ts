@@ -9,7 +9,13 @@ import {
   isHexColor,
 } from "@/lib/finance/input";
 import { isCurrencyCode } from "@/lib/finance/currencies";
-import { RECURRENCE_INTERVALS, type Category, type RecurrenceInterval } from "@/types";
+import {
+  RECURRENCE_INTERVALS,
+  CATEGORY_KINDS,
+  type Category,
+  type CategoryKind,
+  type RecurrenceInterval,
+} from "@/types";
 
 export type ActionResult = { ok: true } | { ok: false; error: string };
 export type CategoryResult =
@@ -144,6 +150,7 @@ export async function deleteExpense(id: string): Promise<ActionResult> {
 export async function createCategory(
   name: string,
   color: string,
+  kind: CategoryKind = "expense",
 ): Promise<CategoryResult> {
   const supabase = await createClient();
   const {
@@ -154,14 +161,16 @@ export async function createCategory(
   const clean = cleanText(name, 60);
   if (!clean) return { ok: false, error: "Name the category." };
   if (!isHexColor(color)) return { ok: false, error: "Pick a color." };
+  const safeKind: CategoryKind = CATEGORY_KINDS.includes(kind) ? kind : "expense";
 
   const { data, error } = await supabase
     .from("categories")
-    .insert({ user_id: user.id, name: clean, color, kind: "expense" })
+    .insert({ user_id: user.id, name: clean, color, kind: safeKind })
     .select("*")
     .single();
   if (error || !data) return { ok: false, error: SAVE_FAILED };
 
-  revalidatePath("/expenses");
+  // Both screens read categories; refresh whichever the new one belongs to.
+  revalidatePath(safeKind === "income" ? "/income" : "/expenses");
   return { ok: true, category: data as Category };
 }

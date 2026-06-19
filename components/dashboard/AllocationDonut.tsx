@@ -4,7 +4,14 @@ import { useMemo, useState } from "react";
 import { motion, useReducedMotion } from "motion/react";
 import { formatCurrency, formatPercent } from "@/lib/finance/format";
 
-export type Segment = { key: string; label: string; value: number };
+export type Segment = {
+  key: string;
+  label: string;
+  value: number;
+  // An explicit color wins (category swatches); otherwise the key maps into the
+  // house palette below.
+  color?: string;
+};
 
 // Warm, restrained palette drawn from the design tokens. Steady holdings read
 // green, equities brass, the rest in leather and oxblood. No rainbow.
@@ -44,7 +51,7 @@ export function AllocationDonut({
       return {
         ...seg,
         fraction,
-        color: COLORS[seg.key] ?? FALLBACK[i % FALLBACK.length],
+        color: seg.color ?? COLORS[seg.key] ?? FALLBACK[i % FALLBACK.length],
         dash: fraction * C,
         rotation: priorFraction * 360,
       };

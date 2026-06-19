@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import type { Income, IncomeFrequency } from "@/types";
+import type { Category, Income, IncomeFrequency } from "@/types";
 import { INCOME_FREQUENCIES } from "@/types";
 import { CURRENCY_OPTIONS } from "@/lib/finance/currencies";
 import { Input } from "@/components/ui/Input";
@@ -9,6 +9,7 @@ import { Select } from "@/components/ui/Select";
 import { SelectMenu } from "@/components/ui/SelectMenu";
 import { Textarea } from "@/components/ui/Textarea";
 import { Button } from "@/components/ui/Button";
+import { CategoryField } from "@/components/expenses/CategoryField";
 import type { IncomeInput } from "@/app/(app)/income/actions";
 
 const FREQUENCY_LABELS: Record<IncomeFrequency, string> = {
@@ -26,15 +27,19 @@ function today(): string {
 export function IncomeForm({
   initial,
   base,
+  categories,
   pending,
   onSubmit,
   onCancel,
+  onError,
 }: {
   initial?: Income;
   base: string;
+  categories: Category[];
   pending: boolean;
   onSubmit: (input: IncomeInput) => void;
   onCancel: () => void;
+  onError: (message: string) => void;
 }) {
   const [source, setSource] = useState(initial?.source ?? "");
   const [amount, setAmount] = useState(
@@ -43,6 +48,9 @@ export function IncomeForm({
   const [currency, setCurrency] = useState(initial?.currency ?? base);
   const [frequency, setFrequency] = useState<IncomeFrequency>(
     initial?.frequency ?? "one_time",
+  );
+  const [categoryId, setCategoryId] = useState<string | null>(
+    initial?.category_id ?? null,
   );
   const [date, setDate] = useState(initial?.date ?? today());
   const [notes, setNotes] = useState(initial?.notes ?? "");
@@ -55,7 +63,15 @@ export function IncomeForm({
     e.preventDefault();
     setTouched(true);
     if (!sourceValid || !amountValid) return;
-    onSubmit({ source, amount, currency, frequency, date, notes });
+    onSubmit({
+      source,
+      amount,
+      currency,
+      frequency,
+      category_id: categoryId,
+      date,
+      notes,
+    });
   }
 
   return (
@@ -109,6 +125,14 @@ export function IncomeForm({
           onChange={(e) => setDate(e.target.value)}
         />
       </div>
+
+      <CategoryField
+        value={categoryId}
+        categories={categories}
+        onChange={setCategoryId}
+        onError={onError}
+        kind="income"
+      />
 
       <Textarea
         id="notes"

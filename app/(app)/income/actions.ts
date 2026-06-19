@@ -13,6 +13,7 @@ export type IncomeInput = {
   amount: number | string;
   currency: string;
   frequency: IncomeFrequency;
+  category_id?: string | null;
   date: string;
   notes?: string | null;
 };
@@ -25,6 +26,7 @@ type BuiltIncome = {
   amount: number;
   currency: string;
   frequency: IncomeFrequency;
+  category_id: string | null;
   date: string;
   notes: string | null;
 };
@@ -53,6 +55,9 @@ function build(
       amount,
       currency: input.currency,
       frequency: input.frequency,
+      // A blank selection clears the category; otherwise trust the id and let
+      // the foreign key reject anything that is not a real category.
+      category_id: input.category_id ? input.category_id : null,
       date: input.date,
       notes: cleanText(input.notes, 1000),
     },

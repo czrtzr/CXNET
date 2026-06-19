@@ -80,6 +80,7 @@ export type Income = {
   amount: number;
   currency: string;
   frequency: IncomeFrequency;
+  category_id: string | null;
   date: string;
   notes: string | null;
   created_at: string;

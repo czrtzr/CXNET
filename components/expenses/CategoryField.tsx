@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import type { Category } from "@/types";
+import type { Category, CategoryKind } from "@/types";
 import { createCategory } from "@/app/(app)/expenses/actions";
 import { SelectMenu } from "@/components/ui/SelectMenu";
 import { Input } from "@/components/ui/Input";
@@ -28,11 +28,13 @@ export function CategoryField({
   categories,
   onChange,
   onError,
+  kind = "expense",
 }: {
   value: string | null;
   categories: Category[];
   onChange: (id: string | null) => void;
   onError: (message: string) => void;
+  kind?: CategoryKind;
 }) {
   const [extra, setExtra] = useState<Category[]>([]);
   const [adding, setAdding] = useState(false);
@@ -50,7 +52,7 @@ export function CategoryField({
   function add() {
     if (name.trim() === "") return;
     start(async () => {
-      const res = await createCategory(name, color);
+      const res = await createCategory(name, color, kind);
       if (!res.ok) {
         onError(res.error);
         return;

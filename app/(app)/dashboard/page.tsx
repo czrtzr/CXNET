@@ -16,8 +16,12 @@ import type {
   Expense,
   Reconciliation,
   BalanceSnapshot,
+  Category,
   InvestmentType,
 } from "@/types";
+
+// Muted swatch for the uncategorized / lumped slice on the breakdown donuts.
+const UNCATEGORIZED_COLOR = "#6b6258";
 
 // Investment types fold into a handful of allocation buckets so the donut reads
 // at a glance rather than splintering across every holding.
@@ -46,6 +50,7 @@ export default async function DashboardPage() {
     { data: incomeData },
     { data: expenseData },
     { data: reconciliationData },
+    { data: categoryData },
   ] = await Promise.all([
     ctx.supabase.from("savings").select("*"),
     ctx.supabase.from("investments").select("*"),
@@ -56,6 +61,7 @@ export default async function DashboardPage() {
       .select("*")
       .order("captured_at", { ascending: false })
       .limit(12),
+    ctx.supabase.from("categories").select("id, name, color, kind"),
   ]);
 
   const savings = (savingData ?? []) as Saving[];
@@ -63,6 +69,11 @@ export default async function DashboardPage() {
   const income = (incomeData ?? []) as Income[];
   const expenses = (expenseData ?? []) as Expense[];
   const reconciliations = (reconciliationData ?? []) as Reconciliation[];
+  const categories = (categoryData ?? []) as Pick<
+    Category,
+    "id" | "name" | "color" | "kind"
+  >[];
+  const catMap = new Map(categories.map((c) => [c.id, c]));
 
   // One rate map covers every currency on the page.
   const rateMap = await getBaseRateMap(ctx.base, [
@@ -153,6 +164,58 @@ export default async function DashboardPage() {
     );
     if (v != null) monthlyExpense += v;
   }
+
+  // Actual cashflow series: one base-valued point per entry, by its date, for
+  // the client to bucket into local weeks and months.
+  const toFlow = (rows: { amount: number; currency: string; date: string }[]) =>
+    rows
+      .map((r) => {
+        const v = convertToBase(Number(r.amount), r.currency, ctx.base, rateMap);
+        return v == null ? null : { t: new Date(r.date).getTime(), v };
+      })
+      .filter((p): p is { t: number; v: number } => p != null);
+  const incomeFlow = toFlow(income);
+  const expenseFlow = toFlow(expenses);
+
+  // Category breakdowns over the last three calendar months, in base currency.
+  const cutoff = new Date();
+  cutoff.setMonth(cutoff.getMonth() - 2, 1);
+  cutoff.setHours(0, 0, 0, 0);
+  const cutoffMs = cutoff.getTime();
+
+  const breakdown = (
+    rows: { amount: number; currency: string; date: string; category_id: string | null }[],
+  ) => {
+    const sums = new Map<string, number>();
+    for (const r of rows) {
+      if (new Date(r.date).getTime() < cutoffMs) continue;
+      const v = convertToBase(Number(r.amount), r.currency, ctx.base, rateMap);
+      if (v == null) continue;
+      const key = r.category_id ?? "none";
+      sums.set(key, (sums.get(key) ?? 0) + v);
+    }
+    const segs = Array.from(sums, ([key, value]) => {
+      const cat = key === "none" ? null : catMap.get(key);
+      return {
+        key,
+        label: key === "none" ? "Uncategorized" : cat?.name ?? "Category",
+        value,
+        color: key === "none" ? UNCATEGORIZED_COLOR : cat?.color ?? UNCATEGORIZED_COLOR,
+      };
+    })
+      .filter((s) => s.value > 0)
+      .sort((a, b) => b.value - a.value);
+    // Keep the donut legible: top six, then a single lumped remainder.
+    if (segs.length <= 7) return segs;
+    const rest = segs.slice(6).reduce((sum, s) => sum + s.value, 0);
+    return [
+      ...segs.slice(0, 6),
+      { key: "more", label: "Other", value: rest, color: UNCATEGORIZED_COLOR },
+    ];
+  };
+
+  const spendingByCategory = breakdown(expenses);
+  const incomeByCategory = breakdown(income);
 
   // Capture today's net worth once, for real owners with something to track, so
   // the trend line is built from honest daily points rather than estimates.
@@ -267,6 +330,10 @@ export default async function DashboardPage() {
       allocation={allocation}
       trend={trend}
       activity={activity.slice(0, 8)}
+      incomeFlow={incomeFlow}
+      expenseFlow={expenseFlow}
+      spendingByCategory={spendingByCategory}
+      incomeByCategory={incomeByCategory}
     />
   );
 }

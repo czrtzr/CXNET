@@ -16,6 +16,7 @@ import {
 import { AllocationDonut, type Segment } from "./AllocationDonut";
 import { NetWorthTrend, type TrendPoint } from "./NetWorthTrend";
 import { CashflowStrip } from "./CashflowStrip";
+import { CashflowChart, type CashEntry } from "./CashflowChart";
 
 type Activity = {
   id: string;
@@ -42,6 +43,10 @@ type Props = {
   allocation: Segment[];
   trend: TrendPoint[];
   activity: Activity[];
+  incomeFlow: CashEntry[];
+  expenseFlow: CashEntry[];
+  spendingByCategory: Segment[];
+  incomeByCategory: Segment[];
 };
 
 const GLYPH = {
@@ -93,6 +98,10 @@ export function DashboardView({
   allocation,
   trend,
   activity,
+  incomeFlow,
+  expenseFlow,
+  spendingByCategory,
+  incomeByCategory,
 }: Props) {
   const firstName = displayName.trim().split(/\s+/)[0] || "there";
 
@@ -171,9 +180,26 @@ export function DashboardView({
             </Card>
           </Reveal>
 
+          {/* Cashflow over time: actual income against spending */}
+          <Reveal delay={0.16}>
+            <Card className="mt-4 px-5 py-5">
+              <SectionLabel>Cashflow</SectionLabel>
+              <p className="mt-1 text-xs text-text-faint">
+                Income against spending, by week or month.
+              </p>
+              <div className="mt-4">
+                <CashflowChart
+                  income={incomeFlow}
+                  expense={expenseFlow}
+                  currency={base}
+                />
+              </div>
+            </Card>
+          </Reveal>
+
+          {/* Allocation + category breakdowns (last three months) */}
           <div className="mt-4 grid gap-4 lg:grid-cols-3">
-            {/* Allocation */}
-            <Reveal delay={0.18}>
+            <Reveal delay={0.22}>
               <Card className="h-full px-5 py-5">
                 <SectionLabel>Allocation</SectionLabel>
                 <div className="mt-5">
@@ -186,11 +212,39 @@ export function DashboardView({
               </Card>
             </Reveal>
 
-            {/* Cashflow */}
-            <Reveal delay={0.24}>
+            {spendingByCategory.length > 0 ? (
+              <Reveal delay={0.28}>
+                <Card className="h-full px-5 py-5">
+                  <SectionLabel>Spending by category</SectionLabel>
+                  <p className="mt-1 text-xs text-text-faint">Last 3 months.</p>
+                  <div className="mt-4">
+                    <AllocationDonut segments={spendingByCategory} currency={base} />
+                  </div>
+                </Card>
+              </Reveal>
+            ) : null}
+
+            {incomeByCategory.length > 0 ? (
+              <Reveal delay={0.34}>
+                <Card className="h-full px-5 py-5">
+                  <SectionLabel>Income by category</SectionLabel>
+                  <p className="mt-1 text-xs text-text-faint">Last 3 months.</p>
+                  <div className="mt-4">
+                    <AllocationDonut segments={incomeByCategory} currency={base} />
+                  </div>
+                </Card>
+              </Reveal>
+            ) : null}
+          </div>
+
+          {/* Recurring budget view + recent activity */}
+          <div className="mt-4 grid gap-4 lg:grid-cols-2">
+            <Reveal delay={0.3}>
               <Card className="flex h-full flex-col px-5 py-5">
                 <SectionLabel>Monthly cashflow</SectionLabel>
-                <p className="mt-1 text-xs text-text-faint">Recurring income against spend.</p>
+                <p className="mt-1 text-xs text-text-faint">
+                  Recurring income against spend.
+                </p>
                 <div className="mt-5 flex-1">
                   <CashflowStrip
                     income={monthlyIncome}
@@ -201,8 +255,7 @@ export function DashboardView({
               </Card>
             </Reveal>
 
-            {/* Recent activity */}
-            <Reveal delay={0.3}>
+            <Reveal delay={0.36}>
               <Card className="h-full px-5 py-5">
                 <SectionLabel>Recent activity</SectionLabel>
                 {activity.length > 0 ? (
