@@ -1,71 +1,39 @@
 "use server";
 
+import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { isSupabaseConfigured } from "@/lib/supabase/env";
 
-// Result shape returned to the client form for inline error display.
-export type AuthState = { error: string | null };
-
-// Generic, non leaking copy. Never reveal whether an email exists or is on the
-// allowlist. Mirrors the security rule against account enumeration.
-const GENERIC_SIGNIN_ERROR = "Those credentials did not match.";
-const GENERIC_SIGNUP_ERROR = "That email cannot register right now.";
-
-function readCredentials(formData: FormData) {
-  const email = String(formData.get("email") ?? "").trim().toLowerCase();
-  const password = String(formData.get("password") ?? "");
-  return { email, password };
-}
-
-export async function signIn(
-  _prev: AuthState,
-  formData: FormData,
-): Promise<AuthState> {
+// Sign in is Google only. The allowlist is still enforced in the database (the
+// enforce_allowlist trigger fires on every auth.users insert, OAuth included),
+// so only invited emails can ever land a session. A refused account is sent
+// back to /login with a generic message that does not confirm the allowlist.
+export async function signInWithGoogle(): Promise<void> {
   if (!isSupabaseConfigured) {
-    return { error: "The app is not connected to its database yet." };
-  }
-
-  const { email, password } = readCredentials(formData);
-  if (!email || !password) {
-    return { error: "Enter your email and password." };
+    redirect("/login?error=config");
   }
 
   const supabase = await createClient();
-  const { error } = await supabase.auth.signInWithPassword({ email, password });
-  if (error) {
-    return { error: GENERIC_SIGNIN_ERROR };
+  const headerList = await headers();
+  const origin =
+    headerList.get("origin") ??
+    (headerList.get("host") ? `https://${headerList.get("host")}` : "");
+
+  const { data, error } = await supabase.auth.signInWithOAuth({
+    provider: "google",
+    options: {
+      redirectTo: `${origin}/auth/callback`,
+      queryParams: { prompt: "select_account" },
+    },
+  });
+
+  if (error || !data?.url) {
+    redirect("/login?error=oauth");
   }
 
-  redirect("/dashboard");
-}
-
-// Registration for an allowlisted email. The allowlist is enforced in the
-// database (a trigger rejects a signup whose email is not allowlisted), so a
-// non allowlisted address fails here without us leaking that fact.
-export async function signUp(
-  _prev: AuthState,
-  formData: FormData,
-): Promise<AuthState> {
-  if (!isSupabaseConfigured) {
-    return { error: "The app is not connected to its database yet." };
-  }
-
-  const { email, password } = readCredentials(formData);
-  if (!email || !password) {
-    return { error: "Enter your email and a password." };
-  }
-  if (password.length < 8) {
-    return { error: "Use at least eight characters." };
-  }
-
-  const supabase = await createClient();
-  const { error } = await supabase.auth.signUp({ email, password });
-  if (error) {
-    return { error: GENERIC_SIGNUP_ERROR };
-  }
-
-  redirect("/dashboard");
+  // Hand off to Google's consent screen.
+  redirect(data.url);
 }
 
 export async function signOut(): Promise<void> {

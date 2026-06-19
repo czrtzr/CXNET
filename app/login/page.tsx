@@ -1,34 +1,27 @@
-import { LoginForm } from "@/components/auth/LoginForm";
-import { Crest } from "@/components/svg/Crest";
-import { Guilloche } from "@/components/svg/Guilloche";
+import { ParticleField } from "@/components/auth/ParticleField";
+import { LoginPanel } from "@/components/auth/LoginPanel";
 import { Grain } from "@/components/svg/Grain";
 
-// Full screen, centered, over a slowly drifting guilloche field. The crest sits
-// above a quiet framed card.
-export default function LoginPage() {
+// Generic, non leaking copy. Only the unconfigured case is specific; every auth
+// failure reads the same so the allowlist is never confirmed or denied.
+function messageFor(code: string | undefined): string | null {
+  if (!code) return null;
+  if (code === "config") return "The app is not connected to its database yet.";
+  return "We could not sign you in. Try again.";
+}
+
+export default async function LoginPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ error?: string }>;
+}) {
+  const { error } = await searchParams;
+
   return (
     <main className="relative flex min-h-screen items-center justify-center overflow-hidden bg-bg-deep px-6">
-      {/* Drifting engraving, low and warm, well behind the card. */}
-      <div className="pointer-events-none absolute inset-0 flex items-center justify-center text-leather/70">
-        <Guilloche size={900} opacity={0.07} rings={9} drift />
-      </div>
+      <ParticleField className="absolute inset-0 h-full w-full" />
       <Grain />
-
-      <div className="relative z-10 w-full max-w-sm">
-        <div className="mb-8 flex flex-col items-center text-center">
-          <Crest size={52} className="text-brass" title="CXNET" />
-          <p className="mt-4 font-serif text-3xl tracking-tight text-text">
-            CXNET
-          </p>
-          <p className="mt-2 text-xs uppercase tracking-[0.22em] text-text-faint">
-            Private wealth
-          </p>
-        </div>
-
-        <div className="rounded-sm border border-border bg-surface-raised/90 p-7 backdrop-blur">
-          <LoginForm />
-        </div>
-      </div>
+      <LoginPanel error={messageFor(error)} />
     </main>
   );
 }
