@@ -109,6 +109,7 @@ async function fetchChartMeta(symbol: string): Promise<Quote | null> {
       volume: num(meta.regularMarketVolume),
       avgVolume: null,
       quoteType: typeof meta.instrumentType === "string" ? meta.instrumentType : null,
+      marketState: typeof meta.marketState === "string" ? meta.marketState : null,
     };
   } catch {
     return null;
@@ -151,6 +152,7 @@ async function fetchQuoteRich(symbol: string): Promise<Quote | null> {
       volume: num(r.regularMarketVolume),
       avgVolume: num(r.averageDailyVolume3Month),
       quoteType: typeof r.quoteType === "string" ? r.quoteType : null,
+      marketState: typeof r.marketState === "string" ? r.marketState : null,
     };
   } catch {
     return null;

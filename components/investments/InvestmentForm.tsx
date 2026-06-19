@@ -3,9 +3,10 @@
 import { useState } from "react";
 import type { Investment, InvestmentType } from "@/types";
 import { INVESTMENT_TYPES, LIVE_INVESTMENT_TYPES } from "@/types";
-import { CURRENCIES } from "@/lib/finance/currencies";
+import { CURRENCY_OPTIONS } from "@/lib/finance/currencies";
 import { Input } from "@/components/ui/Input";
 import { Select } from "@/components/ui/Select";
+import { SelectMenu } from "@/components/ui/SelectMenu";
 import { Textarea } from "@/components/ui/Textarea";
 import { Button } from "@/components/ui/Button";
 import { StockSearch } from "./StockSearch";
@@ -137,18 +138,13 @@ export function InvestmentForm({
               : undefined
           }
         />
-        <Select
+        <SelectMenu
           id="currency"
           label="Currency"
           value={currency}
-          onChange={(e) => setCurrency(e.target.value)}
-        >
-          {CURRENCIES.map((c) => (
-            <option key={c.code} value={c.code}>
-              {c.code}
-            </option>
-          ))}
-        </Select>
+          onChange={setCurrency}
+          options={CURRENCY_OPTIONS}
+        />
       </div>
 
       <div className="grid grid-cols-2 gap-3">

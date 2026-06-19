@@ -42,6 +42,15 @@ export const CURRENCIES: CurrencyOption[] = [
 
 export const CURRENCY_CODES: readonly string[] = CURRENCIES.map((c) => c.code);
 
+// Ready-made options for the SelectMenu: code as the label, full name as the
+// searchable hint. Structurally a SelectMenuOption, kept here to avoid repeating
+// the mapping in every form.
+export const CURRENCY_OPTIONS = CURRENCIES.map((c) => ({
+  value: c.code,
+  label: c.code,
+  hint: c.name,
+}));
+
 export function isCurrencyCode(value: unknown): value is string {
   return typeof value === "string" && CURRENCY_CODES.includes(value);
 }

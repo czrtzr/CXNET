@@ -3,6 +3,7 @@
 import { useEffect, useState, useTransition } from "react";
 import type { Investment } from "@/types";
 import type { Candle, HistoryRange, HistorySession, Quote } from "@/lib/finance/market";
+import { marketStatus } from "@/lib/finance/market";
 import {
   setManualPrice,
   resumeLivePricing,
@@ -149,6 +150,10 @@ export function PositionDetail({
         ? { tone: "offline" as const, label: "Offline" }
         : { tone: "live" as const, label: "Live" };
 
+  // Market phase for a live instrument, so the chart's session reads in context
+  // (a closed market is why an intraday view shows the last full day).
+  const status = isLive && ticker ? marketStatus(quote?.marketState, session) : null;
+
   const actual = actualInput.trim() === "" ? null : Number(actualInput.replace(/[\s,]/g, ""));
   const diff = actual != null && !Number.isNaN(actual) ? actual - value : 0;
 
@@ -193,6 +198,7 @@ export function PositionDetail({
                 {investment.name ?? investment.ticker}
               </h2>
               <Badge tone={badge.tone}>{badge.label}</Badge>
+              {status ? <Badge tone={status.tone}>{status.label}</Badge> : null}
             </div>
             {investment.ticker ? (
               <p className="mt-1 font-mono text-xs text-text-faint">
@@ -225,6 +231,7 @@ export function PositionDetail({
             currency={investment.currency}
             range={range}
             session={session}
+            marketOpen={status?.open ?? false}
             loading={historyLoading}
             onRangeChange={setRange}
           />

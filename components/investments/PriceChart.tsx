@@ -41,6 +41,7 @@ export function PriceChart({
   currency,
   range,
   session,
+  marketOpen = false,
   loading,
   onRangeChange,
 }: {
@@ -48,6 +49,7 @@ export function PriceChart({
   currency: string;
   range: HistoryRange;
   session?: HistorySession | null;
+  marketOpen?: boolean;
   loading: boolean;
   onRangeChange: (range: HistoryRange) => void;
 }) {
@@ -96,7 +98,9 @@ export function PriceChart({
 
     const gridY = [0, 0.25, 0.5, 0.75, 1].map((f) => lo + (hi - lo) * f);
 
-    // Market open and close markers, only on the one day intraday view.
+    // Market open and close markers, only on the one day intraday view, and
+    // only when that moment actually falls inside the data we have. During an
+    // open session the close has not happened yet, so its marker stays hidden.
     const nearestIndex = (ts: number) => {
       let best = 0;
       let bd = Infinity;
@@ -109,21 +113,66 @@ export function PriceChart({
       }
       return best;
     };
+    const firstT = points[0]?.t ?? 0;
+    const lastT = points[n - 1]?.t ?? 0;
+    const within = (ts: number) => ts >= firstT && ts <= lastT;
     const markers =
       range === "1d" && session && n > 0
         ? [
-            { label: "Open", idx: nearestIndex(session.open) },
-            { label: "Close", idx: nearestIndex(session.close) },
+            ...(within(session.open)
+              ? [{ label: "Open", idx: nearestIndex(session.open) }]
+              : []),
+            ...(within(session.close)
+              ? [{ label: "Close", idx: nearestIndex(session.close) }]
+              : []),
           ]
         : [];
 
+    // While the market is open the live series ends at "now", so the current
+    // moment sits at the last point. Drawn only on the intraday view.
+    const nowIdx = marketOpen && range === "1d" && n > 0 ? n - 1 : null;
+
+    // The trading day the intraday view represents, so a last-session chart on a
+    // closed market is unmistakable.
+    const dayLabel =
+      range === "1d" && n > 0
+        ? new Date(lastT).toLocaleDateString("en-US", {
+            weekday: "short",
+            month: "short",
+            day: "numeric",
+          })
+        : null;
+
     const candleW = n > 0 ? Math.max(1.2, ((PX1 - PX0) / n) * 0.62) : 2;
 
-    return { xAt, yAt, linePath, areaPath, last, lineColor, gridY, markers, candleW };
-  }, [points, mode, range, session, n]);
+    return {
+      xAt,
+      yAt,
+      linePath,
+      areaPath,
+      last,
+      lineColor,
+      gridY,
+      markers,
+      nowIdx,
+      dayLabel,
+      candleW,
+    };
+  }, [points, mode, range, session, marketOpen, n]);
 
-  const { xAt, yAt, linePath, areaPath, last, lineColor, gridY, markers, candleW } =
-    geom;
+  const {
+    xAt,
+    yAt,
+    linePath,
+    areaPath,
+    last,
+    lineColor,
+    gridY,
+    markers,
+    nowIdx,
+    dayLabel,
+    candleW,
+  } = geom;
 
   function onMove(e: React.PointerEvent) {
     if (n === 0 || !wrapRef.current) return;
@@ -141,7 +190,8 @@ export function PriceChart({
   return (
     <div>
       <div className="mb-3 flex items-center justify-between">
-        <div className="inline-flex overflow-hidden rounded-sm border border-border">
+        <div className="flex items-center gap-3">
+          <div className="inline-flex overflow-hidden rounded-sm border border-border">
           {(["line", "candle"] as const).map((m) => (
             <button
               key={m}
@@ -160,6 +210,10 @@ export function PriceChart({
               {m}
             </button>
           ))}
+          </div>
+          {dayLabel ? (
+            <span className="text-xs tabular-nums text-text-faint">{dayLabel}</span>
+          ) : null}
         </div>
         <div className="inline-flex gap-1">
           {HISTORY_RANGES.map((r) => (
@@ -246,7 +300,7 @@ export function PriceChart({
                 strokeLinecap="round"
                 initial={reduce ? false : { pathLength: 0 }}
                 animate={{ pathLength: 1 }}
-                transition={{ duration: 1.1, ease: "easeInOut" }}
+                transition={{ duration: 1.6, ease: "easeInOut" }}
               />
               {last ? (
                 <motion.circle
@@ -284,7 +338,12 @@ export function PriceChart({
                   key={i}
                   initial={reduce ? false : { opacity: 0, y: 8 }}
                   animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.25, delay: reduce ? 0 : Math.min(i * 0.008, 0.6) }}
+                  transition={{
+                    duration: 0.32,
+                    // Spread the stagger evenly across the whole series so it
+                    // never catches up and lurches near the end.
+                    delay: reduce ? 0 : (i / Math.max(1, n - 1)) * 0.8,
+                  }}
                 >
                   <line x1={x} y1={yAt(p.h)} x2={x} y2={yAt(p.l)} stroke={color} strokeWidth="0.7" />
                   <rect
@@ -324,6 +383,31 @@ export function PriceChart({
               </text>
             </g>
           ))}
+
+          {/* current-time marker, only while the market is open */}
+          {nowIdx != null ? (
+            <g pointerEvents="none">
+              <line
+                x1={xAt(nowIdx)}
+                y1={PY0}
+                x2={xAt(nowIdx)}
+                y2={PY1}
+                stroke="var(--pos)"
+                strokeWidth="0.8"
+                strokeOpacity="0.7"
+              />
+              <text
+                x={xAt(nowIdx)}
+                y={PY0 - 5}
+                fontSize="8"
+                fill="var(--pos)"
+                textAnchor="end"
+                className="uppercase"
+              >
+                Now
+              </text>
+            </g>
+          ) : null}
 
           {/* crosshair */}
           {hovered ? (

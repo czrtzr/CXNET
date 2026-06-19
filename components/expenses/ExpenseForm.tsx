@@ -3,9 +3,10 @@
 import { useState } from "react";
 import type { Category, Expense, RecurrenceInterval } from "@/types";
 import { RECURRENCE_INTERVALS } from "@/types";
-import { CURRENCIES } from "@/lib/finance/currencies";
+import { CURRENCY_OPTIONS } from "@/lib/finance/currencies";
 import { Input } from "@/components/ui/Input";
 import { Select } from "@/components/ui/Select";
+import { SelectMenu } from "@/components/ui/SelectMenu";
 import { Textarea } from "@/components/ui/Textarea";
 import { Button } from "@/components/ui/Button";
 import { CategoryField } from "./CategoryField";
@@ -100,18 +101,14 @@ export function ExpenseForm({
           onChange={(e) => setAmount(e.target.value)}
           error={touched && !amountValid ? "Enter an amount." : undefined}
         />
-        <Select
+        <SelectMenu
           id="currency"
           label="Currency"
           value={currency}
-          onChange={(e) => setCurrency(e.target.value)}
-        >
-          {CURRENCIES.map((c) => (
-            <option key={c.code} value={c.code}>
-              {c.code}
-            </option>
-          ))}
-        </Select>
+          onChange={setCurrency}
+          options={CURRENCY_OPTIONS}
+          className="min-w-[6rem]"
+        />
       </div>
 
       <CategoryField

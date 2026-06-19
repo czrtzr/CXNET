@@ -3,7 +3,7 @@
 import { useState, useTransition } from "react";
 import type { Category } from "@/types";
 import { createCategory } from "@/app/(app)/expenses/actions";
-import { Select } from "@/components/ui/Select";
+import { SelectMenu } from "@/components/ui/SelectMenu";
 import { Input } from "@/components/ui/Input";
 import { Button } from "@/components/ui/Button";
 import { cn } from "@/lib/utils/cn";
@@ -80,18 +80,15 @@ export function CategoryField({
         </button>
       </div>
 
-      <Select
+      <SelectMenu
         id="category"
         value={value ?? ""}
-        onChange={(e) => onChange(e.target.value || null)}
-      >
-        <option value="">Uncategorized</option>
-        {all.map((c) => (
-          <option key={c.id} value={c.id}>
-            {c.name}
-          </option>
-        ))}
-      </Select>
+        onChange={(v) => onChange(v || null)}
+        options={[
+          { value: "", label: "Uncategorized" },
+          ...all.map((c) => ({ value: c.id, label: c.name })),
+        ]}
+      />
 
       {adding ? (
         <div className="mt-1 flex flex-col gap-3 rounded-sm border border-border bg-surface p-3">

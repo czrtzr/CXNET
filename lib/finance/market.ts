@@ -20,6 +20,8 @@ export type Quote = {
   volume: number | null;
   avgVolume: number | null;
   quoteType: string | null;
+  // Yahoo's session phase: REGULAR, PRE, POST, CLOSED, PREPRE, POSTPOST.
+  marketState: string | null;
 };
 
 export type Candle = { t: number; o: number; h: number; l: number; c: number };
@@ -60,3 +62,40 @@ export type HistoryResult = {
   points: Candle[];
   session: HistorySession | null;
 };
+
+// Human-readable market status for the position header. Prefers Yahoo's
+// authoritative marketState; falls back to the session window against the
+// current time when the rich quote is unavailable. Returns null when there is
+// nothing to say (no quote and no session).
+export type MarketStatus = {
+  label: string;
+  tone: "live" | "manual" | "neutral";
+  open: boolean;
+};
+
+export function marketStatus(
+  marketState: string | null | undefined,
+  session: HistorySession | null,
+  now: number = Date.now(),
+): MarketStatus | null {
+  switch (marketState) {
+    case "REGULAR":
+      return { label: "Market open", tone: "live", open: true };
+    case "PRE":
+    case "PREPRE":
+      return { label: "Pre-market", tone: "manual", open: false };
+    case "POST":
+    case "POSTPOST":
+      return { label: "After hours", tone: "manual", open: false };
+    case "CLOSED":
+      return { label: "Market closed", tone: "neutral", open: false };
+  }
+  // No marketState (rich quote failed): infer from the session window.
+  if (session) {
+    const open = now >= session.open && now < session.close;
+    return open
+      ? { label: "Market open", tone: "live", open: true }
+      : { label: "Market closed", tone: "neutral", open: false };
+  }
+  return null;
+}
