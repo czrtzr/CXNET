@@ -1,7 +1,7 @@
 // Pure financial math shared across screens. No formatting and no IO here, so it
 // runs identically on the server and client.
 
-import type { IncomeFrequency } from "@/types";
+import type { IncomeFrequency, RecurrenceInterval } from "@/types";
 
 // Normalize any income cadence to a monthly figure so a mixed list totals
 // honestly. A one time entry contributes nothing to the recurring monthly view.
@@ -19,6 +19,30 @@ export function monthlyEquivalent(
     case "annual":
       return amount / 12;
     case "one_time":
+      return 0;
+  }
+}
+
+// Normalize a recurring expense to a monthly figure, mirroring
+// monthlyEquivalent for income. A one-off (no recurrence) is not a recurring
+// monthly cost and contributes nothing to the monthly cashflow view.
+export function expenseMonthlyEquivalent(
+  amount: number,
+  recurrence: RecurrenceInterval | null,
+): number {
+  switch (recurrence) {
+    case "weekly":
+      return (amount * 52) / 12;
+    case "biweekly":
+      return (amount * 26) / 12;
+    case "monthly":
+      return amount;
+    case "quarterly":
+      return amount / 3;
+    case "annual":
+      return amount / 12;
+    case null:
+    default:
       return 0;
   }
 }

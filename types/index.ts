@@ -120,6 +120,15 @@ export type Saving = {
   created_at: string;
 };
 
+export type BalanceSnapshot = {
+  id: string;
+  user_id: string;
+  captured_at: string;
+  net_worth: number;
+  assets: number;
+  liabilities: number;
+};
+
 export type Reconciliation = {
   id: string;
   user_id: string;
