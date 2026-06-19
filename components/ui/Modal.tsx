@@ -20,13 +20,20 @@ type ModalProps = {
   open: boolean;
   onClose: () => void;
   title?: string;
+  size?: "md" | "lg" | "xl";
   children: ReactNode;
+};
+
+const SIZES: Record<NonNullable<ModalProps["size"]>, string> = {
+  md: "max-w-md",
+  lg: "max-w-lg",
+  xl: "max-w-3xl",
 };
 
 // Centered dialog over a blurred scrim. Closes on Escape or backdrop click,
 // locks body scroll while open, and moves focus into the panel. A fuller focus
 // trap is part of the Phase 7 accessibility pass.
-export function Modal({ open, onClose, title, children }: ModalProps) {
+export function Modal({ open, onClose, title, size = "md", children }: ModalProps) {
   const reduce = useReducedMotion();
   const panelRef = useRef<HTMLDivElement>(null);
   const isClient = useIsClient();
@@ -69,7 +76,7 @@ export function Modal({ open, onClose, title, children }: ModalProps) {
             aria-modal="true"
             aria-label={title}
             tabIndex={-1}
-            className="relative z-10 w-full max-w-md rounded-sm border border-border bg-surface-raised outline-none"
+            className={`relative z-10 w-full ${SIZES[size]} rounded-sm border border-border bg-surface-raised outline-none`}
             initial={reduce ? false : { y: 10, opacity: 0, scale: 0.98 }}
             animate={{ y: 0, opacity: 1, scale: 1 }}
             exit={reduce ? { opacity: 0 } : { y: 8, opacity: 0 }}

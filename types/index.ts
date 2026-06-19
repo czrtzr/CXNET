@@ -38,6 +38,41 @@ export type ReconciliationTarget = (typeof RECONCILIATION_TARGETS)[number];
 
 export type ReconciliationDirection = "gain" | "shortfall";
 
+export const INVESTMENT_TYPES = [
+  "stock",
+  "etf",
+  "crypto",
+  "bond",
+  "real_estate",
+  "other",
+] as const;
+export type InvestmentType = (typeof INVESTMENT_TYPES)[number];
+
+// Types that carry a live market price (the rest are manual value).
+export const LIVE_INVESTMENT_TYPES: readonly InvestmentType[] = [
+  "stock",
+  "etf",
+  "crypto",
+];
+
+export type Investment = {
+  id: string;
+  user_id: string;
+  ticker: string | null;
+  name: string | null;
+  shares: number;
+  purchase_price: number | null;
+  current_price: number | null;
+  currency: string;
+  type: InvestmentType;
+  is_live_priced: boolean;
+  price_is_manual: boolean;
+  purchase_date: string | null;
+  notes: string | null;
+  price_updated_at: string | null;
+  created_at: string;
+};
+
 export type Income = {
   id: string;
   user_id: string;
