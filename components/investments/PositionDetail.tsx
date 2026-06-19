@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useTransition } from "react";
 import type { Investment } from "@/types";
-import type { Candle, HistoryRange, Quote } from "@/lib/finance/market";
+import type { Candle, HistoryRange, HistorySession, Quote } from "@/lib/finance/market";
 import {
   setManualPrice,
   resumeLivePricing,
@@ -69,6 +69,7 @@ export function PositionDetail({
   const [quote, setQuote] = useState<Quote | null>(null);
   const [quoteLoading, setQuoteLoading] = useState(false);
   const [points, setPoints] = useState<Candle[]>([]);
+  const [session, setSession] = useState<HistorySession | null>(null);
   const [historyLoading, setHistoryLoading] = useState(false);
   const [range, setRange] = useState<HistoryRange>("6mo");
   const [manualInput, setManualInput] = useState("");
@@ -105,23 +106,30 @@ export function PositionDetail({
   useEffect(() => {
     if (!ticker || !isLive) return;
     let active = true;
-    const load = async () => {
-      setHistoryLoading(true);
+    const load = async (showLoading: boolean) => {
+      if (showLoading) setHistoryLoading(true);
       try {
         const r = await fetch(
           `/api/prices/history?symbol=${encodeURIComponent(ticker)}&range=${range}`,
         );
         const d = r.ok ? await r.json() : null;
-        if (active) setPoints(d?.points ?? []);
+        if (active) {
+          setPoints(d?.points ?? []);
+          setSession(d?.session ?? null);
+        }
       } catch {
         // Chart shows its empty state.
       } finally {
-        if (active) setHistoryLoading(false);
+        if (active && showLoading) setHistoryLoading(false);
       }
     };
-    void load();
+    void load(true);
+    // The one day view refreshes itself while it is open.
+    let timer: ReturnType<typeof setInterval> | undefined;
+    if (range === "1d") timer = setInterval(() => void load(false), 45000);
     return () => {
       active = false;
+      if (timer) clearInterval(timer);
     };
   }, [ticker, isLive, range]);
 
@@ -216,6 +224,7 @@ export function PositionDetail({
             points={points}
             currency={investment.currency}
             range={range}
+            session={session}
             loading={historyLoading}
             onRangeChange={setRange}
           />

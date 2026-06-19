@@ -31,5 +31,32 @@ export type SearchHit = {
   exchange: string;
 };
 
-export const HISTORY_RANGES = ["1mo", "3mo", "6mo", "1y", "5y"] as const;
+// Compact quote for annotating search results with a daily move.
+export type MiniQuote = {
+  symbol: string;
+  price: number | null;
+  changePct: number | null;
+  currency: string | null;
+};
+
+export const HISTORY_RANGES = [
+  "1d",
+  "5d",
+  "1mo",
+  "3mo",
+  "6mo",
+  "1y",
+  "5y",
+] as const;
 export type HistoryRange = (typeof HISTORY_RANGES)[number];
+
+// Intraday ranges carry minute-level data and a known trading session.
+export const INTRADAY_RANGES: readonly HistoryRange[] = ["1d", "5d"];
+
+// Regular market open and close for the session, epoch milliseconds.
+export type HistorySession = { open: number; close: number };
+
+export type HistoryResult = {
+  points: Candle[];
+  session: HistorySession | null;
+};

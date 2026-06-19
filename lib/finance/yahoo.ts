@@ -1,5 +1,14 @@
 import "server-only";
-import type { Quote, Candle, SearchHit, HistoryRange } from "./market";
+import type {
+  Quote,
+  Candle,
+  SearchHit,
+  MiniQuote,
+  HistoryRange,
+  HistoryResult,
+  HistorySession,
+} from "./market";
+import { INTRADAY_RANGES } from "./market";
 
 // Yahoo Finance access, server side only. Three concerns:
 //   1. Quotes + fundamentals (price, 52 week band, dividend, P/E, volume) from
@@ -159,47 +168,102 @@ export async function getQuote(symbol: string): Promise<Quote | null> {
   return data;
 }
 
+// Lightweight batch: price, daily change, currency for several symbols at once.
+// Used to annotate search results, where a full per symbol quote would be slow.
+export async function getMiniQuotes(
+  symbols: string[],
+): Promise<Record<string, MiniQuote>> {
+  const out: Record<string, MiniQuote> = {};
+  const unique = Array.from(new Set(symbols.map((s) => s.toUpperCase()))).slice(0, 10);
+  if (unique.length === 0) return out;
+
+  const creds = await getAuth();
+  if (!creds) return out;
+  try {
+    const res = await timedFetch(
+      `https://query1.finance.yahoo.com/v7/finance/quote?symbols=${encodeURIComponent(unique.join(","))}&crumb=${encodeURIComponent(creds.crumb)}`,
+      { headers: { cookie: creds.cookie } },
+    );
+    if (!res.ok) return out;
+    const json = await res.json();
+    const rows: unknown[] = json?.quoteResponse?.result ?? [];
+    for (const raw of rows) {
+      const r = raw as Record<string, unknown>;
+      const sym = typeof r.symbol === "string" ? r.symbol : null;
+      if (!sym) continue;
+      out[sym] = {
+        symbol: sym,
+        price: num(r.regularMarketPrice),
+        changePct: num(r.regularMarketChangePercent),
+        currency: typeof r.currency === "string" ? r.currency : null,
+      };
+    }
+    return out;
+  } catch {
+    return out;
+  }
+}
+
 // --- history --------------------------------------------------------------
-const historyCache = new Map<string, { data: Candle[]; at: number }>();
-const HISTORY_TTL_MS = 1000 * 60 * 10;
+const historyCache = new Map<string, { data: HistoryResult; at: number }>();
+const EMPTY: HistoryResult = { points: [], session: null };
 
 function intervalFor(range: HistoryRange): string {
-  return range === "5y" ? "1wk" : "1d";
+  if (range === "1d") return "5m";
+  if (range === "5d") return "15m";
+  if (range === "5y") return "1wk";
+  return "1d";
+}
+
+// Intraday data turns over fast and should poll fresh; daily data can sit
+// longer.
+function ttlFor(range: HistoryRange): number {
+  return INTRADAY_RANGES.includes(range) ? 1000 * 45 : 1000 * 60 * 10;
 }
 
 export async function getHistory(
   symbol: string,
   range: HistoryRange,
-): Promise<Candle[]> {
+): Promise<HistoryResult> {
   const key = `${symbol.toUpperCase()}:${range}`;
   const cached = historyCache.get(key);
-  if (cached && Date.now() - cached.at < HISTORY_TTL_MS) return cached.data;
+  if (cached && Date.now() - cached.at < ttlFor(range)) return cached.data;
 
+  const intraday = INTRADAY_RANGES.includes(range);
   try {
     const res = await timedFetch(
-      `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(symbol)}?range=${range}&interval=${intervalFor(range)}`,
+      `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(symbol)}?range=${range}&interval=${intervalFor(range)}${intraday ? "&includePrePost=true" : ""}`,
     );
-    if (!res.ok) return cached?.data ?? [];
+    if (!res.ok) return cached?.data ?? EMPTY;
     const json = await res.json();
     const result = json?.chart?.result?.[0];
     const ts: number[] = result?.timestamp ?? [];
     const q = result?.indicators?.quote?.[0];
-    if (!q) return cached?.data ?? [];
+    if (!q) return cached?.data ?? EMPTY;
 
-    const out: Candle[] = [];
+    const points: Candle[] = [];
     for (let i = 0; i < ts.length; i++) {
       const o = num(q.open?.[i]);
       const h = num(q.high?.[i]);
       const l = num(q.low?.[i]);
       const c = num(q.close?.[i]);
       if (o != null && h != null && l != null && c != null) {
-        out.push({ t: ts[i] * 1000, o, h, l, c });
+        points.push({ t: ts[i] * 1000, o, h, l, c });
       }
     }
-    historyCache.set(key, { data: out, at: Date.now() });
-    return out;
+
+    // Regular session open and close, for the intraday markers.
+    const reg = result?.meta?.currentTradingPeriod?.regular;
+    const session: HistorySession | null =
+      intraday && num(reg?.start) != null && num(reg?.end) != null
+        ? { open: reg.start * 1000, close: reg.end * 1000 }
+        : null;
+
+    const data: HistoryResult = { points, session };
+    historyCache.set(key, { data, at: Date.now() });
+    return data;
   } catch {
-    return cached?.data ?? [];
+    return cached?.data ?? EMPTY;
   }
 }
 

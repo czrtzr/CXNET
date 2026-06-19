@@ -76,18 +76,18 @@ export function Modal({ open, onClose, title, size = "md", children }: ModalProp
             aria-modal="true"
             aria-label={title}
             tabIndex={-1}
-            className={`relative z-10 w-full ${SIZES[size]} rounded-sm border border-border bg-surface-raised outline-none`}
+            className={`relative z-10 flex max-h-[90vh] w-full ${SIZES[size]} flex-col rounded-sm border border-border bg-surface-raised outline-none`}
             initial={reduce ? false : { y: 10, opacity: 0, scale: 0.98 }}
             animate={{ y: 0, opacity: 1, scale: 1 }}
             exit={reduce ? { opacity: 0 } : { y: 8, opacity: 0 }}
             transition={{ duration: reduce ? 0 : 0.18 }}
           >
             {title ? (
-              <div className="border-b border-border px-5 py-4 font-serif text-lg text-text">
+              <div className="shrink-0 border-b border-border px-5 py-4 font-serif text-lg text-text">
                 {title}
               </div>
             ) : null}
-            <div className="px-5 py-4">{children}</div>
+            <div className="overflow-y-auto px-5 py-4">{children}</div>
           </motion.div>
         </motion.div>
       ) : null}

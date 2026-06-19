@@ -2,7 +2,7 @@
 
 import { useRef, useState } from "react";
 import { motion, useReducedMotion } from "motion/react";
-import type { Candle, HistoryRange } from "@/lib/finance/market";
+import type { Candle, HistoryRange, HistorySession } from "@/lib/finance/market";
 import { HISTORY_RANGES } from "@/lib/finance/market";
 import { formatCurrency } from "@/lib/finance/format";
 import { cn } from "@/lib/utils/cn";
@@ -16,6 +16,8 @@ const PY0 = PAD.t;
 const PY1 = H - PAD.b;
 
 const RANGE_LABELS: Record<HistoryRange, string> = {
+  "1d": "1D",
+  "5d": "1W",
   "1mo": "1M",
   "3mo": "3M",
   "6mo": "6M",
@@ -23,23 +25,29 @@ const RANGE_LABELS: Record<HistoryRange, string> = {
   "5y": "5Y",
 };
 
-function niceDate(ms: number, fiveYear: boolean): string {
+function niceDate(ms: number, range: HistoryRange): string {
   const d = new Date(ms);
-  return fiveYear
-    ? d.toLocaleDateString("en-US", { month: "short", year: "2-digit" })
-    : d.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+  if (range === "1d")
+    return d.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" });
+  if (range === "5d")
+    return d.toLocaleString("en-US", { weekday: "short", hour: "numeric" });
+  if (range === "5y")
+    return d.toLocaleDateString("en-US", { month: "short", year: "2-digit" });
+  return d.toLocaleDateString("en-US", { month: "short", day: "numeric" });
 }
 
 export function PriceChart({
   points,
   currency,
   range,
+  session,
   loading,
   onRangeChange,
 }: {
   points: Candle[];
   currency: string;
   range: HistoryRange;
+  session?: HistorySession | null;
   loading: boolean;
   onRangeChange: (range: HistoryRange) => void;
 }) {
@@ -49,7 +57,6 @@ export function PriceChart({
   const wrapRef = useRef<HTMLDivElement>(null);
 
   const n = points.length;
-  const fiveYear = range === "5y";
 
   // Domain. Line tracks close; candles need the full high/low band.
   let lo = Infinity;
@@ -83,6 +90,27 @@ export function PriceChart({
   const lineColor = up ? "var(--pos)" : "var(--neg)";
 
   const gridY = [0, 0.25, 0.5, 0.75, 1].map((f) => lo + (hi - lo) * f);
+
+  // Market open and close markers, only on the one day intraday view.
+  const nearestIndex = (ts: number) => {
+    let best = 0;
+    let bd = Infinity;
+    for (let i = 0; i < n; i++) {
+      const d = Math.abs(points[i].t - ts);
+      if (d < bd) {
+        bd = d;
+        best = i;
+      }
+    }
+    return best;
+  };
+  const markers =
+    range === "1d" && session && n > 0
+      ? [
+          { label: "Open", idx: nearestIndex(session.open) },
+          { label: "Close", idx: nearestIndex(session.close) },
+        ]
+      : [];
 
   function onMove(e: React.PointerEvent) {
     if (n === 0 || !wrapRef.current) return;
@@ -176,7 +204,7 @@ export function PriceChart({
                   fill="var(--text-faint)"
                   textAnchor={i === 0 ? "start" : i === 3 ? "end" : "middle"}
                 >
-                  {niceDate(points[idx].t, fiveYear)}
+                  {niceDate(points[idx].t, range)}
                 </text>
               );
             })}
@@ -252,6 +280,32 @@ export function PriceChart({
             })
           )}
 
+          {/* market open / close markers (one day view) */}
+          {markers.map((m) => (
+            <g key={m.label} pointerEvents="none">
+              <line
+                x1={xAt(m.idx)}
+                y1={PY0}
+                x2={xAt(m.idx)}
+                y2={PY1}
+                stroke="var(--brass)"
+                strokeWidth="0.6"
+                strokeDasharray="3 3"
+                strokeOpacity="0.5"
+              />
+              <text
+                x={xAt(m.idx)}
+                y={PY0 - 5}
+                fontSize="8"
+                fill="var(--brass)"
+                textAnchor="middle"
+                className="uppercase"
+              >
+                {m.label}
+              </text>
+            </g>
+          ))}
+
           {/* crosshair */}
           {hovered ? (
             <g pointerEvents="none">
@@ -267,7 +321,7 @@ export function PriceChart({
             className="pointer-events-none absolute top-0 z-10 -translate-x-1/2 rounded-sm border border-border bg-surface px-2.5 py-1.5 text-[11px] shadow-lg"
             style={{ left: hover!.px }}
           >
-            <p className="text-text-faint">{niceDate(hovered.t, fiveYear)}</p>
+            <p className="text-text-faint">{niceDate(hovered.t, range)}</p>
             <p className="tabular-nums text-text">{formatCurrency(hovered.c, currency)}</p>
             {mode === "candle" ? (
               <p className="tabular-nums text-text-muted">

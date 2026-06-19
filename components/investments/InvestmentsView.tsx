@@ -255,7 +255,6 @@ export function InvestmentsView({
             setOpen(false);
             setEditing(null);
           }}
-          onError={(message) => toast(message, "error")}
         />
       </Modal>
 

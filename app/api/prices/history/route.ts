@@ -19,6 +19,6 @@ export async function GET(request: Request) {
   if (!range || !HISTORY_RANGES.includes(range))
     return NextResponse.json({ error: "Bad range" }, { status: 400 });
 
-  const points = await getHistory(symbol, range);
-  return NextResponse.json({ points });
+  const result = await getHistory(symbol, range);
+  return NextResponse.json(result);
 }

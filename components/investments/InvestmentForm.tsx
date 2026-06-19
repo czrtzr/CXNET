@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useState } from "react";
 import type { Investment, InvestmentType } from "@/types";
 import { INVESTMENT_TYPES, LIVE_INVESTMENT_TYPES } from "@/types";
 import { CURRENCIES } from "@/lib/finance/currencies";
@@ -8,6 +8,8 @@ import { Input } from "@/components/ui/Input";
 import { Select } from "@/components/ui/Select";
 import { Textarea } from "@/components/ui/Textarea";
 import { Button } from "@/components/ui/Button";
+import { StockSearch } from "./StockSearch";
+import { SymbolChart } from "./SymbolChart";
 import type { InvestmentInput } from "@/app/(app)/investments/actions";
 
 const TYPE_LABELS: Record<InvestmentType, string> = {
@@ -29,21 +31,17 @@ export function InvestmentForm({
   pending,
   onSubmit,
   onCancel,
-  onError,
 }: {
   initial?: Investment;
   base: string;
   pending: boolean;
   onSubmit: (input: InvestmentInput) => void;
   onCancel: () => void;
-  onError: (message: string) => void;
 }) {
   const [type, setType] = useState<InvestmentType>(initial?.type ?? "stock");
   const [ticker, setTicker] = useState(initial?.ticker ?? "");
   const [name, setName] = useState(initial?.name ?? "");
-  const [shares, setShares] = useState(
-    initial ? String(initial.shares) : "",
-  );
+  const [shares, setShares] = useState(initial ? String(initial.shares) : "");
   const [purchasePrice, setPurchasePrice] = useState(
     initial?.purchase_price != null ? String(initial.purchase_price) : "",
   );
@@ -53,30 +51,10 @@ export function InvestmentForm({
   const [currency, setCurrency] = useState(initial?.currency ?? base);
   const [purchaseDate, setPurchaseDate] = useState(initial?.purchase_date ?? today());
   const [notes, setNotes] = useState(initial?.notes ?? "");
+  const [previewSymbol, setPreviewSymbol] = useState(initial?.ticker ?? "");
   const [touched, setTouched] = useState(false);
-  const [lookingUp, startLookup] = useTransition();
 
   const isLive = LIVE_INVESTMENT_TYPES.includes(type);
-
-  function lookUp() {
-    const sym = ticker.trim();
-    if (sym === "") return;
-    startLookup(async () => {
-      try {
-        const res = await fetch(`/api/prices/quote?symbol=${encodeURIComponent(sym)}`);
-        if (!res.ok) {
-          onError("Could not find that symbol.");
-          return;
-        }
-        const { quote } = await res.json();
-        if (quote?.name) setName(quote.name);
-        if (quote?.currency) setCurrency(quote.currency);
-        if (quote?.price != null) setCurrentValue(String(quote.price));
-      } catch {
-        onError("Look up failed. Try again.");
-      }
-    });
-  }
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -115,21 +93,27 @@ export function InvestmentForm({
       </Select>
 
       {isLive ? (
-        <div className="flex items-end gap-2">
-          <div className="flex-1">
-            <Input
-              id="ticker"
-              label="Ticker"
-              placeholder={type === "crypto" ? "BTC-USD" : "AAPL"}
-              value={ticker}
-              onChange={(e) => setTicker(e.target.value.toUpperCase())}
-              error={touched && ticker.trim() === "" ? "Enter a ticker." : undefined}
-            />
-          </div>
-          <Button type="button" variant="outline" onClick={lookUp} disabled={lookingUp}>
-            {lookingUp ? "Looking" : "Look up"}
-          </Button>
-        </div>
+        <>
+          <StockSearch
+            value={ticker}
+            onChange={setTicker}
+            onSelect={(picked) => {
+              setTicker(picked.symbol);
+              if (picked.name) setName(picked.name);
+              if (picked.currency) setCurrency(picked.currency);
+              if (picked.price != null) setCurrentValue(String(picked.price));
+              setPreviewSymbol(picked.symbol);
+            }}
+          />
+          {touched && ticker.trim() === "" ? (
+            <p className="text-xs text-neg">Search and pick a symbol.</p>
+          ) : null}
+          {previewSymbol ? (
+            <div className="rounded-sm border border-border bg-surface p-3">
+              <SymbolChart symbol={previewSymbol} currency={currency} />
+            </div>
+          ) : null}
+        </>
       ) : null}
 
       <Input
