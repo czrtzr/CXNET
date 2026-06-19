@@ -42,15 +42,24 @@ async function fetchUsdRates(quotes: string[]): Promise<UsdRates> {
   }
 }
 
-async function readTableRates(quotes: string[]): Promise<UsdRates> {
+// Read cached USD rates from the shared table. With sinceISO, only rows captured
+// at or after that instant count, which is how the daily cache is honored before
+// reaching for the network. Without it, the most recent row wins even if stale,
+// which is the last-resort fallback.
+async function readTableRates(
+  quotes: string[],
+  sinceISO?: string,
+): Promise<UsdRates> {
   try {
     const admin = createAdminClient();
-    const { data } = await admin
+    let query = admin
       .from("fx_rates")
       .select("quote, rate, captured_at")
       .eq("base", PIVOT)
       .in("quote", quotes)
       .order("captured_at", { ascending: false });
+    if (sinceISO) query = query.gte("captured_at", sinceISO);
+    const { data } = await query;
     const out: UsdRates = {};
     for (const row of data ?? []) {
       // First row per quote wins (newest, thanks to the order above).
@@ -60,6 +69,12 @@ async function readTableRates(quotes: string[]): Promise<UsdRates> {
   } catch {
     return {};
   }
+}
+
+function startOfTodayUtc(): string {
+  const d = new Date();
+  d.setUTCHours(0, 0, 0, 0);
+  return d.toISOString();
 }
 
 async function upsertTableRates(rates: UsdRates): Promise<void> {
@@ -100,21 +115,33 @@ async function loadUsdRates(codes: string[]): Promise<UsdRates> {
 
   if (missing.length === 0) return result;
 
-  const fresh = await fetchUsdRates(missing);
-  if (Object.keys(fresh).length > 0) {
-    for (const [code, rate] of Object.entries(fresh)) {
-      result[code] = rate;
-      memory.set(code, { rate, at: now });
-    }
-    void upsertTableRates(fresh);
+  // Primary cache: today's rows in the shared table. Warms the in-memory map so
+  // a cold server instance does not refetch what was already priced today.
+  const cachedToday = await readTableRates(missing, startOfTodayUtc());
+  for (const [code, rate] of Object.entries(cachedToday)) {
+    result[code] = rate;
+    memory.set(code, { rate, at: now });
   }
 
-  // Anything the upstream did not return falls back to the cached table.
-  const stillMissing = missing.filter((c) => result[c] == null);
-  if (stillMissing.length > 0) {
-    const table = await readTableRates(stillMissing);
-    for (const [code, rate] of Object.entries(table)) {
-      result[code] = rate;
+  // Only what is still unpriced goes to the network.
+  const needNetwork = missing.filter((c) => result[c] == null);
+  if (needNetwork.length > 0) {
+    const fresh = await fetchUsdRates(needNetwork);
+    if (Object.keys(fresh).length > 0) {
+      for (const [code, rate] of Object.entries(fresh)) {
+        result[code] = rate;
+        memory.set(code, { rate, at: now });
+      }
+      void upsertTableRates(fresh);
+    }
+
+    // Last resort: the most recent row, even if it predates today.
+    const stillMissing = needNetwork.filter((c) => result[c] == null);
+    if (stillMissing.length > 0) {
+      const stale = await readTableRates(stillMissing);
+      for (const [code, rate] of Object.entries(stale)) {
+        result[code] = rate;
+      }
     }
   }
 

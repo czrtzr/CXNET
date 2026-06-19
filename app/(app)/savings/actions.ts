@@ -150,38 +150,14 @@ export async function reconcileSaving(
   const actualBalance = parseAmount(actual);
   if (actualBalance == null) return { ok: false, error: "Enter the true balance." };
 
-  const { data: account, error: readError } = await supabase
-    .from("savings")
-    .select("balance, currency, account_name")
-    .eq("id", id)
-    .eq("user_id", user.id)
-    .single();
-  if (readError || !account) return { ok: false, error: SAVE_FAILED };
-
-  const previous = Number(account.balance);
-  const diff = actualBalance - previous;
-  if (diff === 0) return { ok: true };
-
-  const { error: logError } = await supabase.from("reconciliations").insert({
-    user_id: user.id,
-    target_type: "savings",
-    target_id: id,
-    account_label: account.account_name,
-    previous_balance: previous,
-    actual_balance: actualBalance,
-    delta: Math.abs(diff),
-    direction: diff > 0 ? "gain" : "shortfall",
-    currency: account.currency,
-    note: cleanText(note, 500),
+  // One atomic call: books the gain or shortfall adjustment and snaps the
+  // balance together, with ownership and guest checks enforced server side.
+  const { error } = await supabase.rpc("reconcile_savings", {
+    p_target: id,
+    p_actual: actualBalance,
+    p_note: cleanText(note, 500),
   });
-  if (logError) return { ok: false, error: SAVE_FAILED };
-
-  const { error: updateError } = await supabase
-    .from("savings")
-    .update({ balance: actualBalance })
-    .eq("id", id)
-    .eq("user_id", user.id);
-  if (updateError) return { ok: false, error: SAVE_FAILED };
+  if (error) return { ok: false, error: SAVE_FAILED };
 
   revalidatePath("/savings");
   return { ok: true };

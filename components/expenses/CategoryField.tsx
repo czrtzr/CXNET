@@ -40,7 +40,12 @@ export function CategoryField({
   const [color, setColor] = useState(SWATCHES[0]);
   const [pending, start] = useTransition();
 
-  const all = [...categories, ...extra];
+  // Once a freshly created category arrives in the refreshed props, drop our
+  // local copy so it does not appear twice.
+  const all = [
+    ...categories,
+    ...extra.filter((e) => !categories.some((c) => c.id === e.id)),
+  ];
 
   function add() {
     if (name.trim() === "") return;
