@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { motion, useReducedMotion } from "motion/react";
 import type { Candle, HistoryRange, HistorySession } from "@/lib/finance/market";
 import { HISTORY_RANGES } from "@/lib/finance/market";
@@ -58,59 +58,72 @@ export function PriceChart({
 
   const n = points.length;
 
-  // Domain. Line tracks close; candles need the full high/low band.
-  let lo = Infinity;
-  let hi = -Infinity;
-  for (const p of points) {
-    const low = mode === "candle" ? p.l : p.c;
-    const high = mode === "candle" ? p.h : p.c;
-    if (low < lo) lo = low;
-    if (high > hi) hi = high;
-  }
-  if (!Number.isFinite(lo) || !Number.isFinite(hi)) {
-    lo = 0;
-    hi = 1;
-  }
-  const span = hi - lo || 1;
-  lo -= span * 0.06;
-  hi += span * 0.06;
-
-  const xAt = (i: number) => (n <= 1 ? PX0 : PX0 + (i / (n - 1)) * (PX1 - PX0));
-  const yAt = (v: number) => PY1 - ((v - lo) / (hi - lo)) * (PY1 - PY0);
-
-  const linePath = points.map((p, i) => `${i === 0 ? "M" : "L"}${xAt(i).toFixed(2)} ${yAt(p.c).toFixed(2)}`).join(" ");
-  const areaPath =
-    n > 0
-      ? `${linePath} L${xAt(n - 1).toFixed(2)} ${PY1} L${xAt(0).toFixed(2)} ${PY1} Z`
-      : "";
-
-  const last = points[n - 1];
-  const first = points[0];
-  const up = last && first ? last.c >= first.c : true;
-  const lineColor = up ? "var(--pos)" : "var(--neg)";
-
-  const gridY = [0, 0.25, 0.5, 0.75, 1].map((f) => lo + (hi - lo) * f);
-
-  // Market open and close markers, only on the one day intraday view.
-  const nearestIndex = (ts: number) => {
-    let best = 0;
-    let bd = Infinity;
-    for (let i = 0; i < n; i++) {
-      const d = Math.abs(points[i].t - ts);
-      if (d < bd) {
-        bd = d;
-        best = i;
-      }
+  // Geometry is pure in the data and view mode, so derive it once per series
+  // rather than on every render. Hovering must not rebuild the whole path.
+  const geom = useMemo(() => {
+    // Domain. Line tracks close; candles need the full high/low band.
+    let lo = Infinity;
+    let hi = -Infinity;
+    for (const p of points) {
+      const low = mode === "candle" ? p.l : p.c;
+      const high = mode === "candle" ? p.h : p.c;
+      if (low < lo) lo = low;
+      if (high > hi) hi = high;
     }
-    return best;
-  };
-  const markers =
-    range === "1d" && session && n > 0
-      ? [
-          { label: "Open", idx: nearestIndex(session.open) },
-          { label: "Close", idx: nearestIndex(session.close) },
-        ]
-      : [];
+    if (!Number.isFinite(lo) || !Number.isFinite(hi)) {
+      lo = 0;
+      hi = 1;
+    }
+    const span = hi - lo || 1;
+    lo -= span * 0.06;
+    hi += span * 0.06;
+
+    const xAt = (i: number) => (n <= 1 ? PX0 : PX0 + (i / (n - 1)) * (PX1 - PX0));
+    const yAt = (v: number) => PY1 - ((v - lo) / (hi - lo)) * (PY1 - PY0);
+
+    const linePath = points
+      .map((p, i) => `${i === 0 ? "M" : "L"}${xAt(i).toFixed(2)} ${yAt(p.c).toFixed(2)}`)
+      .join(" ");
+    const areaPath =
+      n > 0
+        ? `${linePath} L${xAt(n - 1).toFixed(2)} ${PY1} L${xAt(0).toFixed(2)} ${PY1} Z`
+        : "";
+
+    const last = points[n - 1];
+    const first = points[0];
+    const up = last && first ? last.c >= first.c : true;
+    const lineColor = up ? "var(--pos)" : "var(--neg)";
+
+    const gridY = [0, 0.25, 0.5, 0.75, 1].map((f) => lo + (hi - lo) * f);
+
+    // Market open and close markers, only on the one day intraday view.
+    const nearestIndex = (ts: number) => {
+      let best = 0;
+      let bd = Infinity;
+      for (let i = 0; i < n; i++) {
+        const d = Math.abs(points[i].t - ts);
+        if (d < bd) {
+          bd = d;
+          best = i;
+        }
+      }
+      return best;
+    };
+    const markers =
+      range === "1d" && session && n > 0
+        ? [
+            { label: "Open", idx: nearestIndex(session.open) },
+            { label: "Close", idx: nearestIndex(session.close) },
+          ]
+        : [];
+
+    const candleW = n > 0 ? Math.max(1.2, ((PX1 - PX0) / n) * 0.62) : 2;
+
+    return { xAt, yAt, linePath, areaPath, last, lineColor, gridY, markers, candleW };
+  }, [points, mode, range, session, n]);
+
+  const { xAt, yAt, linePath, areaPath, last, lineColor, gridY, markers, candleW } =
+    geom;
 
   function onMove(e: React.PointerEvent) {
     if (n === 0 || !wrapRef.current) return;
@@ -122,8 +135,8 @@ export function PriceChart({
     setHover({ index, px: Math.max(48, Math.min(px, rect.width - 48)) });
   }
 
-  const hovered = hover ? points[hover.index] : null;
-  const candleW = n > 0 ? Math.max(1.2, ((PX1 - PX0) / n) * 0.62) : 2;
+  // ?? null guards the brief window after a live poll grows the series.
+  const hovered = hover ? points[hover.index] ?? null : null;
 
   return (
     <div>
@@ -133,7 +146,10 @@ export function PriceChart({
             <button
               key={m}
               type="button"
-              onClick={() => setMode(m)}
+              onClick={() => {
+                setMode(m);
+                setHover(null);
+              }}
               className={cn(
                 "px-3 py-1 text-xs capitalize transition",
                 mode === m
@@ -150,7 +166,10 @@ export function PriceChart({
             <button
               key={r}
               type="button"
-              onClick={() => onRangeChange(r)}
+              onClick={() => {
+                onRangeChange(r);
+                setHover(null);
+              }}
               className={cn(
                 "rounded-sm px-2 py-1 text-xs transition",
                 range === r
