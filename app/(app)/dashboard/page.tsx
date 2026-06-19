@@ -100,8 +100,9 @@ export default async function DashboardPage() {
       continue;
     }
     investmentsTotal += value;
-    // Cost basis only counts when a purchase price is on record.
-    if (inv.purchase_price != null) {
+    // Cost basis only counts when there is a live price to compare against, so a
+    // position whose price has not loaded yet cannot read as a phantom loss.
+    if (inv.current_price != null && inv.purchase_price != null) {
       const cost = convertToBase(
         costBasis(inv.shares, inv.purchase_price),
         inv.currency,
@@ -162,9 +163,11 @@ export default async function DashboardPage() {
       .order("captured_at", { ascending: false })
       .limit(1)
       .maybeSingle();
+    // Compare as instants, not strings: timestamptz comes back in a different
+    // ISO shape than our midnight marker, so a lexical compare is unsafe.
     const capturedToday =
       lastSnap?.captured_at != null &&
-      lastSnap.captured_at >= startOfTodayUtc();
+      new Date(lastSnap.captured_at).getTime() >= Date.parse(startOfTodayUtc());
     if (!capturedToday) {
       await ctx.supabase.from("balance_history").insert({
         user_id: ctx.userId,
@@ -180,10 +183,16 @@ export default async function DashboardPage() {
     .select("*")
     .order("captured_at", { ascending: true })
     .limit(365);
-  const trend = ((historyData ?? []) as BalanceSnapshot[]).map((row) => ({
-    t: new Date(row.captured_at).getTime(),
-    v: Number(row.net_worth),
-  }));
+  // One point per calendar day, the latest winning, so a day captured more than
+  // once never doubles a node on the line.
+  const byDay = new Map<string, { t: number; v: number }>();
+  for (const row of (historyData ?? []) as BalanceSnapshot[]) {
+    byDay.set(row.captured_at.slice(0, 10), {
+      t: new Date(row.captured_at).getTime(),
+      v: Number(row.net_worth),
+    });
+  }
+  const trend = Array.from(byDay.values());
 
   // Recent activity: one timestamp-sorted stream across every kind of entry.
   type Activity = {
