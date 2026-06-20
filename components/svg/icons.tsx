@@ -76,6 +76,20 @@ export function SavingsIcon(props: IconProps) {
   );
 }
 
+export function NetWorthIcon(props: IconProps) {
+  return (
+    <Base {...props}>
+      <path d="M12 4v16" />
+      <path d="M7 20h10" />
+      <path d="M4 6h16" />
+      <path d="M2 11l2-5 2 5" />
+      <path d="M2 11a2 2 0 0 0 4 0" />
+      <path d="M18 11l2-5 2 5" />
+      <path d="M18 11a2 2 0 0 0 4 0" />
+    </Base>
+  );
+}
+
 export function AdminIcon(props: IconProps) {
   return (
     <Base {...props}>

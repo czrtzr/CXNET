@@ -2,7 +2,7 @@
 
 import { useMemo, useOptimistic, useState, useTransition } from "react";
 import { motion } from "motion/react";
-import type { AccountRef, Category, Expense, RecurrenceInterval } from "@/types";
+import type { AccountRef, Category, Expense, RecurringRule } from "@/types";
 import {
   createExpense,
   updateExpense,
@@ -10,8 +10,7 @@ import {
   type ExpenseInput,
 } from "@/app/(app)/expenses/actions";
 import { convertToBase } from "@/lib/finance/currencies";
-import { expenseMonthlyEquivalent } from "@/lib/finance/calculations";
-import { RecurringPanel, type RecurringItem } from "@/components/finance/RecurringPanel";
+import { RecurringRulesPanel } from "@/components/finance/RecurringRulesPanel";
 import { Amount } from "@/components/ui/Amount";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
@@ -27,6 +26,7 @@ type Props = {
   rows: Expense[];
   categories: Category[];
   accounts: AccountRef[];
+  rules: RecurringRule[];
   defaultAccountId: string | null;
   base: string;
   rateMap: Record<string, number>;
@@ -49,14 +49,6 @@ function numeric(value: number | string): number {
   return Number(String(value).replace(/[\s,]/g, ""));
 }
 
-const RECURRENCE_LABEL: Record<RecurrenceInterval, string> = {
-  weekly: "Weekly",
-  biweekly: "Biweekly",
-  monthly: "Monthly",
-  quarterly: "Quarterly",
-  annual: "Annual",
-};
-
 const MONTH_FMT = new Intl.DateTimeFormat("en-US", {
   month: "long",
   year: "numeric",
@@ -71,6 +63,7 @@ export function ExpensesView({
   rows,
   categories,
   accounts,
+  rules,
   defaultAccountId,
   base,
   rateMap,
@@ -92,26 +85,6 @@ export function ExpensesView({
     if (converted == null) unconverted += 1;
     else total += converted;
   }
-
-  const recurringItems: RecurringItem[] = optimistic
-    .filter((r) => r.is_recurring)
-    .map((r) => ({
-      id: r.id,
-      label: r.description,
-      cadence: r.recurrence ? RECURRENCE_LABEL[r.recurrence] : "Recurring",
-      amount: Number(r.amount),
-      currency: r.currency,
-      monthly: convertToBase(
-        expenseMonthlyEquivalent(Number(r.amount), r.recurrence),
-        r.currency,
-        base,
-        rateMap,
-      ),
-    }));
-  const recurringMonthlyTotal = recurringItems.reduce(
-    (sum, i) => sum + (i.monthly ?? 0),
-    0,
-  );
 
   // Actual logged spending by date, in base currency, for the change view.
   const flow = useMemo(
@@ -221,11 +194,15 @@ export function ExpensesView({
         <ChangeView entries={flow} currency={base} higherIsBetter={false} />
       ) : null}
 
-      <RecurringPanel
-        items={recurringItems}
+      <RecurringRulesPanel
+        rules={rules}
+        kind="expense"
         base={base}
-        monthlyTotal={recurringMonthlyTotal}
-        noun="expenses"
+        rateMap={rateMap}
+        accounts={accounts}
+        categories={categories}
+        defaultAccountId={defaultAccountId}
+        canWrite={canWrite}
       />
 
       {optimistic.length === 0 ? (

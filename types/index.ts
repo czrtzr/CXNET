@@ -24,6 +24,14 @@ export const RECURRENCE_INTERVALS = [
 ] as const;
 export type RecurrenceInterval = (typeof RECURRENCE_INTERVALS)[number];
 
+export const RECURRENCE_LABELS: Record<RecurrenceInterval, string> = {
+  weekly: "Weekly",
+  biweekly: "Biweekly",
+  monthly: "Monthly",
+  quarterly: "Quarterly",
+  annual: "Annual",
+};
+
 export const CATEGORY_KINDS = ["expense", "income"] as const;
 export type CategoryKind = (typeof CATEGORY_KINDS)[number];
 
@@ -186,6 +194,25 @@ export type AccountRef = {
   currency: string;
 };
 
+// A recurring template that generates dated income or expense entries on a
+// cadence. kind reuses CategoryKind ('income' | 'expense').
+export type RecurringRule = {
+  id: string;
+  user_id: string;
+  kind: CategoryKind;
+  label: string;
+  amount: number;
+  currency: string;
+  account_id: string | null;
+  category_id: string | null;
+  cadence: RecurrenceInterval;
+  anchor_date: string;
+  next_run: string;
+  active: boolean;
+  notes: string | null;
+  created_at: string;
+};
+
 // One line in an account's activity log: a posting, a transfer leg, or a manual
 // balance adjustment. amount is signed in the account's own currency (money in
 // positive, money out negative), so the log reads as a running ledger.
@@ -197,6 +224,96 @@ export type AccountLogEntry = {
   currency: string;
   date: string;
   note: string | null;
+};
+
+// ---------------------------------------------------------------------------
+// Assets, liabilities, and debt payments — the balance sheet beyond cash and
+// investments.
+// ---------------------------------------------------------------------------
+export const ASSET_TYPES = ["property", "vehicle", "other"] as const;
+export type AssetType = (typeof ASSET_TYPES)[number];
+
+export const ASSET_TYPE_LABELS: Record<AssetType, string> = {
+  property: "Property",
+  vehicle: "Vehicle",
+  other: "Other",
+};
+
+export const LIABILITY_TYPES = [
+  "mortgage",
+  "auto_loan",
+  "student_loan",
+  "personal_loan",
+  "credit_card",
+  "owed",
+  "other",
+] as const;
+export type LiabilityType = (typeof LIABILITY_TYPES)[number];
+
+export const LIABILITY_TYPE_LABELS: Record<LiabilityType, string> = {
+  mortgage: "Mortgage",
+  auto_loan: "Auto loan",
+  student_loan: "Student loan",
+  personal_loan: "Personal loan",
+  credit_card: "Credit card",
+  owed: "Owed",
+  other: "Other",
+};
+
+export const DEBT_DIRECTIONS = ["owed_by_me", "owed_to_me"] as const;
+export type DebtDirection = (typeof DEBT_DIRECTIONS)[number];
+
+// The slim asset shape the liability form needs to offer a "secured against"
+// link without loading every column.
+export type AssetRef = {
+  id: string;
+  name: string;
+  currency: string;
+};
+
+export type Asset = {
+  id: string;
+  user_id: string;
+  name: string;
+  asset_type: AssetType;
+  value: number;
+  currency: string;
+  purchase_price: number | null;
+  purchase_date: string | null;
+  notes: string | null;
+  created_at: string;
+};
+
+export type Liability = {
+  id: string;
+  user_id: string;
+  name: string;
+  liability_type: LiabilityType;
+  direction: DebtDirection;
+  balance: number;
+  currency: string;
+  original_principal: number | null;
+  interest_rate: number | null;
+  term_months: number | null;
+  payment_amount: number | null;
+  start_date: string | null;
+  asset_id: string | null;
+  notes: string | null;
+  created_at: string;
+};
+
+export type DebtPayment = {
+  id: string;
+  user_id: string;
+  liability_id: string;
+  account_id: string | null;
+  amount: number;
+  principal_amount: number;
+  interest_amount: number;
+  currency: string;
+  paid_on: string;
+  note: string | null;
+  created_at: string;
 };
 
 export type Reconciliation = {

@@ -2,14 +2,14 @@
 
 import { useMemo, useOptimistic, useState, useTransition } from "react";
 import { motion } from "motion/react";
-import type { AccountRef, Category, Income } from "@/types";
+import type { AccountRef, Category, Income, RecurringRule } from "@/types";
 import {
   createIncome,
   updateIncome,
   deleteIncome,
   type IncomeInput,
 } from "@/app/(app)/income/actions";
-import { monthlyEquivalent } from "@/lib/finance/calculations";
+import { monthlyEquivalent, recurrenceMonthly } from "@/lib/finance/calculations";
 import { convertToBase } from "@/lib/finance/currencies";
 import { Amount } from "@/components/ui/Amount";
 import { Badge } from "@/components/ui/Badge";
@@ -20,13 +20,14 @@ import { useToast } from "@/components/ui/Toast";
 import { PageTransition } from "@/components/layout/PageTransition";
 import { EmptyState } from "@/components/finance/EmptyState";
 import { ChangeView } from "@/components/finance/ChangeView";
-import { RecurringPanel, type RecurringItem } from "@/components/finance/RecurringPanel";
+import { RecurringRulesPanel } from "@/components/finance/RecurringRulesPanel";
 import { IncomeForm } from "./IncomeForm";
 
 type Props = {
   rows: Income[];
   categories: Category[];
   accounts: AccountRef[];
+  rules: RecurringRule[];
   defaultAccountId: string | null;
   base: string;
   rateMap: Record<string, number>;
@@ -57,6 +58,7 @@ export function IncomeView({
   rows,
   categories,
   accounts,
+  rules,
   defaultAccountId,
   base,
   rateMap,
@@ -71,6 +73,9 @@ export function IncomeView({
   const categoryMap = new Map(categories.map((c) => [c.id, c]));
   const accountMap = new Map(accounts.map((a) => [a.id, a]));
 
+  // Monthly equivalent of recurring income: active rules, plus any legacy
+  // per-entry recurring amounts (generated occurrences are one-time and so add
+  // nothing here, never double-counting a rule).
   let monthlyTotal = 0;
   let unconverted = 0;
   for (const r of optimistic) {
@@ -80,22 +85,16 @@ export function IncomeView({
     if (converted == null) unconverted += 1;
     else monthlyTotal += converted;
   }
-
-  const recurringItems: RecurringItem[] = optimistic
-    .filter((r) => r.frequency !== "one_time")
-    .map((r) => ({
-      id: r.id,
-      label: r.source,
-      cadence: FREQUENCY_BADGE[r.frequency],
-      amount: Number(r.amount),
-      currency: r.currency,
-      monthly: convertToBase(
-        monthlyEquivalent(Number(r.amount), r.frequency),
-        r.currency,
-        base,
-        rateMap,
-      ),
-    }));
+  for (const rule of rules) {
+    if (!rule.active) continue;
+    const v = convertToBase(
+      recurrenceMonthly(Number(rule.amount), rule.cadence),
+      rule.currency,
+      base,
+      rateMap,
+    );
+    if (v != null) monthlyTotal += v;
+  }
 
   // Actual logged income by date, in base currency, for the change view.
   const flow = useMemo(
@@ -192,11 +191,15 @@ export function IncomeView({
         <ChangeView entries={flow} currency={base} higherIsBetter />
       ) : null}
 
-      <RecurringPanel
-        items={recurringItems}
+      <RecurringRulesPanel
+        rules={rules}
+        kind="income"
         base={base}
-        monthlyTotal={monthlyTotal}
-        noun="income"
+        rateMap={rateMap}
+        accounts={accounts}
+        categories={categories}
+        defaultAccountId={defaultAccountId}
+        canWrite={canWrite}
       />
 
       {optimistic.length === 0 ? (

@@ -7,6 +7,7 @@ import {
   ExpensesIcon,
   InvestmentsIcon,
   SavingsIcon,
+  NetWorthIcon,
 } from "@/components/svg/icons";
 import type { ReactElement, SVGProps } from "react";
 
@@ -16,11 +17,12 @@ export type NavItem = {
   Icon: (props: SVGProps<SVGSVGElement> & { size?: number }) => ReactElement;
 };
 
-// The five primary destinations. Mobile shows exactly these as bottom tabs.
+// The primary destinations. Mobile shows exactly these as bottom tabs.
 export const PRIMARY_NAV: NavItem[] = [
   { href: "/dashboard", label: "Dashboard", Icon: DashboardIcon },
   { href: "/income", label: "Income", Icon: IncomeIcon },
   { href: "/expenses", label: "Expenses", Icon: ExpensesIcon },
   { href: "/investments", label: "Investments", Icon: InvestmentsIcon },
   { href: "/accounts", label: "Accounts", Icon: SavingsIcon },
+  { href: "/net-worth", label: "Net Worth", Icon: NetWorthIcon },
 ];

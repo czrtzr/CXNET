@@ -7,7 +7,9 @@ import {
   costBasis,
   monthlyEquivalent,
   expenseMonthlyEquivalent,
+  recurrenceMonthly,
 } from "@/lib/finance/calculations";
+import { generateDueRecurring } from "@/lib/finance/recurring";
 import { DashboardView } from "@/components/dashboard/DashboardView";
 import type {
   Investment,
@@ -18,7 +20,10 @@ import type {
   BalanceSnapshot,
   Category,
   InvestmentType,
+  RecurringRule,
   Transfer,
+  Asset,
+  Liability,
 } from "@/types";
 
 // Muted swatch for the uncategorized / lumped slice on the breakdown donuts.
@@ -52,6 +57,8 @@ export default async function DashboardPage() {
   const ctx = await getSessionContext();
   if (!ctx) redirect("/login");
 
+  if (ctx.role !== "guest") await generateDueRecurring(ctx.supabase, ctx.userId);
+
   const [
     { data: savingData },
     { data: investmentData },
@@ -60,6 +67,9 @@ export default async function DashboardPage() {
     { data: reconciliationData },
     { data: categoryData },
     { data: transferData },
+    { data: ruleData },
+    { data: assetData },
+    { data: liabilityData },
   ] = await Promise.all([
     ctx.supabase.from("savings").select("*"),
     ctx.supabase.from("investments").select("*"),
@@ -76,6 +86,9 @@ export default async function DashboardPage() {
       .select("*")
       .order("occurred_at", { ascending: false })
       .limit(12),
+    ctx.supabase.from("recurring_rules").select("*").eq("active", true),
+    ctx.supabase.from("assets").select("value, currency, asset_type"),
+    ctx.supabase.from("liabilities").select("balance, currency, direction"),
   ]);
 
   const savings = (savingData ?? []) as Saving[];
@@ -84,6 +97,15 @@ export default async function DashboardPage() {
   const expenses = (expenseData ?? []) as Expense[];
   const reconciliations = (reconciliationData ?? []) as Reconciliation[];
   const transfers = (transferData ?? []) as Transfer[];
+  const rules = (ruleData ?? []) as RecurringRule[];
+  const assetRows = (assetData ?? []) as Pick<
+    Asset,
+    "value" | "currency" | "asset_type"
+  >[];
+  const liabilityRows = (liabilityData ?? []) as Pick<
+    Liability,
+    "balance" | "currency" | "direction"
+  >[];
   const categories = (categoryData ?? []) as Pick<
     Category,
     "id" | "name" | "color" | "kind"
@@ -97,6 +119,9 @@ export default async function DashboardPage() {
     ...investments.map((r) => r.currency),
     ...income.map((r) => r.currency),
     ...expenses.map((r) => r.currency),
+    ...rules.map((r) => r.currency),
+    ...assetRows.map((r) => r.currency),
+    ...liabilityRows.map((r) => r.currency),
   ]);
 
   // Anything that cannot convert to base is left out of totals and counted, the
@@ -154,7 +179,29 @@ export default async function DashboardPage() {
 
   // Accounts hold their cash balance plus any positions mirrored into them.
   const accountsTotal = savingsStoredTotal + linkedTotal;
-  const netWorth = accountsTotal + investmentsTotal;
+
+  // Tangible assets and money owed to you add to assets; debts you owe subtract.
+  let tangibleTotal = 0;
+  for (const a of assetRows) {
+    const v = convertToBase(Number(a.value), a.currency, ctx.base, rateMap);
+    if (v == null) unconverted += 1;
+    else tangibleTotal += v;
+  }
+  let receivableTotal = 0;
+  let debtsTotal = 0;
+  for (const l of liabilityRows) {
+    const v = convertToBase(Number(l.balance), l.currency, ctx.base, rateMap);
+    if (v == null) {
+      unconverted += 1;
+      continue;
+    }
+    if (l.direction === "owed_to_me") receivableTotal += v;
+    else debtsTotal += v;
+  }
+
+  const assetsTotal =
+    accountsTotal + investmentsTotal + tangibleTotal + receivableTotal;
+  const netWorth = assetsTotal - debtsTotal;
   const investmentGain = investmentsTotal - investmentCost;
 
   // Allocation segments: cash first, then each investment bucket, largest last
@@ -167,11 +214,15 @@ export default async function DashboardPage() {
       label,
       value,
     })),
+    { key: "assets", label: "Property & other", value: tangibleTotal + receivableTotal },
   ]
     .filter((seg) => seg.value > 0)
     .sort((a, b) => b.value - a.value);
 
   // Recurring monthly cashflow, both sides normalized to a monthly figure.
+  // Active recurring rules are the primary source; legacy per-entry recurring
+  // amounts still count, and rule-generated entries are one-time so they add
+  // nothing here (no double count).
   let monthlyIncome = 0;
   for (const i of income) {
     const v = convertToBase(
@@ -192,6 +243,17 @@ export default async function DashboardPage() {
       rateMap,
     );
     if (v != null) monthlyExpense += v;
+  }
+  for (const rule of rules) {
+    const v = convertToBase(
+      recurrenceMonthly(Number(rule.amount), rule.cadence),
+      rule.currency,
+      ctx.base,
+      rateMap,
+    );
+    if (v == null) continue;
+    if (rule.kind === "income") monthlyIncome += v;
+    else monthlyExpense += v;
   }
 
   // Actual cashflow series: one base-valued point per entry, by its date, for
@@ -246,12 +308,18 @@ export default async function DashboardPage() {
   const spendingByCategory = breakdown(expenses);
   const incomeByCategory = breakdown(income);
 
-  // Capture today's net worth once, for real owners with something to track, so
-  // the trend line is built from honest daily points rather than estimates.
-  if (ctx.role !== "guest" && (savings.length > 0 || investments.length > 0)) {
+  // Keep one snapshot per day, but keep today's current: refresh it on every
+  // load so adding an account, asset, or debt today moves the latest point now,
+  // rather than freezing at whatever net worth was on the first visit of the day.
+  const hasHoldings =
+    savings.length > 0 ||
+    investments.length > 0 ||
+    assetRows.length > 0 ||
+    liabilityRows.length > 0;
+  if (ctx.role !== "guest" && hasHoldings) {
     const { data: lastSnap } = await ctx.supabase
       .from("balance_history")
-      .select("captured_at")
+      .select("id, captured_at")
       .order("captured_at", { ascending: false })
       .limit(1)
       .maybeSingle();
@@ -260,12 +328,18 @@ export default async function DashboardPage() {
     const capturedToday =
       lastSnap?.captured_at != null &&
       new Date(lastSnap.captured_at).getTime() >= Date.parse(startOfTodayUtc());
-    if (!capturedToday) {
+    if (capturedToday && lastSnap) {
+      await ctx.supabase
+        .from("balance_history")
+        .update({ net_worth: netWorth, assets: assetsTotal, liabilities: debtsTotal })
+        .eq("id", lastSnap.id)
+        .eq("user_id", ctx.userId);
+    } else {
       await ctx.supabase.from("balance_history").insert({
         user_id: ctx.userId,
         net_worth: netWorth,
-        assets: netWorth,
-        liabilities: 0,
+        assets: assetsTotal,
+        liabilities: debtsTotal,
       });
     }
   }
@@ -366,10 +440,11 @@ export default async function DashboardPage() {
       accountsTotal={accountsTotal}
       investmentsTotal={investmentsTotal}
       investmentGain={investmentGain}
+      debtsTotal={debtsTotal}
       monthlyIncome={monthlyIncome}
       monthlyExpense={monthlyExpense}
       unconverted={unconverted}
-      hasData={savings.length > 0 || investments.length > 0}
+      hasData={hasHoldings}
       allocation={allocation}
       trend={trend}
       activity={activity.slice(0, 8)}

@@ -37,6 +37,7 @@ type Props = {
   netWorth: number;
   accountsTotal: number;
   investmentsTotal: number;
+  debtsTotal: number;
   investmentGain: number;
   monthlyIncome: number;
   monthlyExpense: number;
@@ -93,6 +94,7 @@ export function DashboardView({
   netWorth,
   accountsTotal,
   investmentsTotal,
+  debtsTotal,
   investmentGain,
   monthlyIncome,
   monthlyExpense,
@@ -151,6 +153,12 @@ export function DashboardView({
                       tone={investmentGain >= 0 ? "pos" : "neg"}
                       quiet
                     />
+                  </span>
+                ) : null}
+                {debtsTotal > 0 ? (
+                  <span>
+                    Debts{" "}
+                    <Amount value={-debtsTotal} currency={base} tone="neg" quiet />
                   </span>
                 ) : null}
                 {unconverted > 0 ? (

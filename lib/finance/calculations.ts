@@ -47,6 +47,27 @@ export function expenseMonthlyEquivalent(
   }
 }
 
+// Monthly equivalent of a recurring rule's cadence. Same factors as
+// expenseMonthlyEquivalent, but for a guaranteed (non-null) interval, so it
+// reads naturally for both income and expense rules.
+export function recurrenceMonthly(
+  amount: number,
+  cadence: RecurrenceInterval,
+): number {
+  switch (cadence) {
+    case "weekly":
+      return (amount * 52) / 12;
+    case "biweekly":
+      return (amount * 26) / 12;
+    case "monthly":
+      return amount;
+    case "quarterly":
+      return amount / 3;
+    case "annual":
+      return amount / 12;
+  }
+}
+
 // Goal progress as a percentage, or null when no goal is set. Not capped, so an
 // account past its goal can read over 100.
 export function goalProgress(balance: number, goal: number | null): number | null {
