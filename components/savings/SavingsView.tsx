@@ -208,7 +208,7 @@ export function SavingsView({
             Savings
           </p>
           <p className="mt-3 font-serif text-4xl tracking-tight text-text">
-            <Amount value={total} currency={base} quiet />
+            <Amount value={total} currency={base} quiet code />
           </p>
           <p className="mt-1 text-xs text-text-muted">
             Across {optimistic.length}{" "}
@@ -290,7 +290,7 @@ export function SavingsView({
                   </div>
 
                   <p className="mt-4 font-serif text-2xl tracking-tight text-text">
-                    <Amount value={Number(row.balance)} currency={row.currency} quiet />
+                    <Amount value={Number(row.balance)} currency={row.currency} quiet code />
                   </p>
 
                   {progress != null ? (

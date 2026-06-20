@@ -38,10 +38,18 @@ export function Modal({ open, onClose, title, size = "md", children }: ModalProp
   const panelRef = useRef<HTMLDivElement>(null);
   const isClient = useIsClient();
 
+  // Keep the latest onClose without making it an effect dependency. A fresh
+  // closure each render would otherwise re-run the focus effect on every
+  // keystroke and yank focus back to the panel, mid-typing, in every dialog.
+  const onCloseRef = useRef(onClose);
+  useEffect(() => {
+    onCloseRef.current = onClose;
+  });
+
   useEffect(() => {
     if (!open) return;
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose();
+      if (e.key === "Escape") onCloseRef.current();
     };
     document.addEventListener("keydown", onKey);
     const prevOverflow = document.body.style.overflow;
@@ -51,7 +59,7 @@ export function Modal({ open, onClose, title, size = "md", children }: ModalProp
       document.removeEventListener("keydown", onKey);
       document.body.style.overflow = prevOverflow;
     };
-  }, [open, onClose]);
+  }, [open]);
 
   if (!isClient) return null;
 

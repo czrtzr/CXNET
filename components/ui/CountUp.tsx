@@ -15,7 +15,8 @@ export function CountUp({
   decimals = 2,
   signed = false,
   tone = "auto",
-  quiet = false,
+  quiet = true,
+  code = false,
   duration = 0.9,
   className,
 }: {
@@ -24,7 +25,10 @@ export function CountUp({
   decimals?: number;
   signed?: boolean;
   tone?: "auto" | "pos" | "neg" | "muted" | "plain";
+  // Participate in quiet mode by default so every figure blurs together.
   quiet?: boolean;
+  // Append the ISO currency code as a faint suffix (currency figures only).
+  code?: boolean;
   duration?: number;
   className?: string;
 }) {
@@ -74,6 +78,15 @@ export function CountUp({
               ? "text-neg"
               : undefined;
 
-  const span = <span className={cn("tabular-nums", toneClass, className)}>{text}</span>;
+  const span = (
+    <span className={cn("tabular-nums", toneClass, className)}>
+      {text}
+      {code && currency ? (
+        <span className="ml-1 align-baseline text-[0.7em] font-normal tracking-wide text-text-faint">
+          {currency}
+        </span>
+      ) : null}
+    </span>
+  );
   return quiet ? <Quietable>{span}</Quietable> : span;
 }

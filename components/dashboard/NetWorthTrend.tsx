@@ -3,6 +3,8 @@
 import { useMemo, useRef, useState } from "react";
 import { motion, useReducedMotion } from "motion/react";
 import { formatCurrency } from "@/lib/finance/format";
+import { useQuietMode } from "@/components/layout/QuietMode";
+import { cn } from "@/lib/utils/cn";
 import type { TrendPoint } from "@/lib/finance/timeframe";
 
 export type { TrendPoint };
@@ -30,6 +32,7 @@ export function NetWorthTrend({
   currency: string;
 }) {
   const reduce = useReducedMotion();
+  const { quiet } = useQuietMode();
   const [hover, setHover] = useState<{ index: number; px: number } | null>(null);
   const wrapRef = useRef<HTMLDivElement>(null);
   const n = points.length;
@@ -118,7 +121,7 @@ export function NetWorthTrend({
           return (
             <g key={i}>
               <line x1={PX0} y1={y} x2={PX1} y2={y} stroke="var(--border)" strokeWidth="0.5" />
-              <text x={PX1 + 6} y={y + 3} fontSize="9" fill="var(--text-faint)" className="tabular-nums">
+              <text x={PX1 + 6} y={y + 3} fontSize="9" fill="var(--text-faint)" className={cn("tabular-nums", quiet && "blur-[4px]")}>
                 {formatCurrency(v, currency)}
               </text>
             </g>
@@ -161,7 +164,9 @@ export function NetWorthTrend({
           style={{ left: hover!.px }}
         >
           <p className="text-text-faint">{niceDate(hovered.t)}</p>
-          <p className="tabular-nums text-text">{formatCurrency(hovered.v, currency)}</p>
+          <p className={cn("tabular-nums text-text", quiet && "select-none blur-sm")}>
+            {formatCurrency(hovered.v, currency)}
+          </p>
         </div>
       ) : null}
     </div>

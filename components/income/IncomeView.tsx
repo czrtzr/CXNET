@@ -150,7 +150,7 @@ export function IncomeView({
             Income
           </p>
           <p className="mt-3 font-serif text-4xl tracking-tight text-text">
-            <Amount value={monthlyTotal} currency={base} quiet />
+            <Amount value={monthlyTotal} currency={base} quiet code />
           </p>
           <p className="mt-1 text-xs text-text-muted">
             Monthly equivalent
@@ -238,6 +238,7 @@ export function IncomeView({
                         value={Number(row.amount)}
                         currency={row.currency}
                         quiet
+                        code
                         className="text-sm"
                       />
                       {row.frequency !== "one_time" && monthlyBase != null ? (

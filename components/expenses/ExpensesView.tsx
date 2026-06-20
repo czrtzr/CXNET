@@ -168,7 +168,7 @@ export function ExpensesView({
             Expenses
           </p>
           <p className="mt-3 font-serif text-4xl tracking-tight text-text">
-            <Amount value={total} currency={base} quiet />
+            <Amount value={total} currency={base} quiet code />
           </p>
           <p className="mt-1 text-xs text-text-muted">
             Total logged
@@ -257,6 +257,7 @@ export function ExpensesView({
                             value={Number(row.amount)}
                             currency={row.currency}
                             quiet
+                            code
                             className="text-sm"
                           />
                           {canWrite && !isTemp ? (

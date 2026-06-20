@@ -14,14 +14,20 @@ export function Amount({
   currency,
   signed = false,
   tone = "auto",
-  quiet = false,
+  quiet = true,
+  code = false,
   className,
 }: {
   value: number;
   currency: string;
   signed?: boolean;
   tone?: Tone;
+  // Participate in quiet mode by default, so every figure blurs together. Pass
+  // quiet={false} only for figures that must always read (none today).
   quiet?: boolean;
+  // Append the ISO currency code as a faint suffix, e.g. "$1 200.00 CAD", to
+  // disambiguate accounts in different currencies that share a symbol.
+  code?: boolean;
   className?: string;
 }) {
   const text = formatCurrency(value, currency, { signed });
@@ -40,7 +46,14 @@ export function Amount({
               : undefined;
 
   const span = (
-    <span className={cn("tabular-nums", toneClass, className)}>{text}</span>
+    <span className={cn("tabular-nums", toneClass, className)}>
+      {text}
+      {code ? (
+        <span className="ml-1 align-baseline text-[0.7em] font-normal tracking-wide text-text-faint">
+          {currency}
+        </span>
+      ) : null}
+    </span>
   );
 
   return quiet ? <Quietable>{span}</Quietable> : span;

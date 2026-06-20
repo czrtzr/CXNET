@@ -124,7 +124,7 @@ export function DashboardView({
                 Net worth
               </p>
               <p className="mt-3 font-serif text-5xl tracking-tight text-text">
-                <CountUp value={netWorth} currency={base} quiet />
+                <CountUp value={netWorth} currency={base} quiet code />
               </p>
               <div className="mt-3 flex flex-wrap items-center gap-x-5 gap-y-1 text-sm text-text-muted">
                 <span>

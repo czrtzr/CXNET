@@ -3,6 +3,8 @@
 import { useMemo, useState } from "react";
 import { motion, useReducedMotion } from "motion/react";
 import { formatCurrency, formatPercent } from "@/lib/finance/format";
+import { useQuietMode } from "@/components/layout/QuietMode";
+import { cn } from "@/lib/utils/cn";
 
 export type Segment = {
   key: string;
@@ -38,6 +40,7 @@ export function AllocationDonut({
   currency: string;
 }) {
   const reduce = useReducedMotion();
+  const { quiet } = useQuietMode();
   const [active, setActive] = useState<number | null>(null);
 
   const { arcs, total } = useMemo(() => {
@@ -98,7 +101,7 @@ export function AllocationDonut({
           <p className="text-[10px] uppercase tracking-[0.14em] text-text-faint">
             {focus ? focus.label : "Total"}
           </p>
-          <p className="mt-0.5 text-sm tabular-nums text-text">
+          <p className={cn("mt-0.5 text-sm tabular-nums text-text", !focus && quiet && "select-none blur-sm")}>
             {focus
               ? formatPercent((focus.value / total) * 100, { decimals: 0 })
               : formatCurrency(total, currency)}
