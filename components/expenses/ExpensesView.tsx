@@ -2,7 +2,7 @@
 
 import { useMemo, useOptimistic, useState, useTransition } from "react";
 import { motion } from "motion/react";
-import type { Category, Expense } from "@/types";
+import type { AccountRef, Category, Expense } from "@/types";
 import {
   createExpense,
   updateExpense,
@@ -24,6 +24,8 @@ import { ExpenseForm } from "./ExpenseForm";
 type Props = {
   rows: Expense[];
   categories: Category[];
+  accounts: AccountRef[];
+  defaultAccountId: string | null;
   base: string;
   rateMap: Record<string, number>;
   canWrite: boolean;
@@ -55,7 +57,15 @@ function monthLabel(date: string): string {
   return Number.isNaN(d.getTime()) ? "Undated" : MONTH_FMT.format(d);
 }
 
-export function ExpensesView({ rows, categories, base, rateMap, canWrite }: Props) {
+export function ExpensesView({
+  rows,
+  categories,
+  accounts,
+  defaultAccountId,
+  base,
+  rateMap,
+  canWrite,
+}: Props) {
   const [optimistic, apply] = useOptimistic(rows, reduce);
   const [pending, start] = useTransition();
   const [open, setOpen] = useState(false);
@@ -63,6 +73,7 @@ export function ExpensesView({ rows, categories, base, rateMap, canWrite }: Prop
   const { toast } = useToast();
 
   const categoryById = new Map(categories.map((c) => [c.id, c]));
+  const accountMap = new Map(accounts.map((a) => [a.id, a]));
 
   let total = 0;
   let unconverted = 0;
@@ -107,6 +118,7 @@ export function ExpensesView({ rows, categories, base, rateMap, canWrite }: Prop
             amount: numeric(input.amount),
             currency: input.currency,
             category_id: input.category_id,
+            account_id: input.account_id ?? null,
             date: input.date,
             notes: input.notes ?? null,
             is_recurring: input.is_recurring,
@@ -126,6 +138,8 @@ export function ExpensesView({ rows, categories, base, rateMap, canWrite }: Prop
             amount: numeric(input.amount),
             currency: input.currency,
             category_id: input.category_id,
+            account_id: input.account_id ?? null,
+            posted_amount: null,
             date: input.date,
             notes: input.notes ?? null,
             is_recurring: input.is_recurring,
@@ -232,6 +246,9 @@ export function ExpensesView({ rows, categories, base, rateMap, canWrite }: Prop
                           <p className="mt-1 text-xs text-text-faint">
                             {category ? `${category.name} · ` : ""}
                             {row.date}
+                            {row.account_id && accountMap.has(row.account_id)
+                              ? ` · ${accountMap.get(row.account_id)!.account_name}`
+                              : ""}
                           </p>
                         </div>
 
@@ -286,6 +303,8 @@ export function ExpensesView({ rows, categories, base, rateMap, canWrite }: Prop
           initial={editing ?? undefined}
           base={base}
           categories={categories}
+          accounts={accounts}
+          defaultAccountId={defaultAccountId}
           pending={pending}
           onSubmit={submit}
           onCancel={() => {

@@ -18,6 +18,7 @@ import type {
   BalanceSnapshot,
   Category,
   InvestmentType,
+  Transfer,
 } from "@/types";
 
 // Muted swatch for the uncategorized / lumped slice on the breakdown donuts.
@@ -51,6 +52,7 @@ export default async function DashboardPage() {
     { data: expenseData },
     { data: reconciliationData },
     { data: categoryData },
+    { data: transferData },
   ] = await Promise.all([
     ctx.supabase.from("savings").select("*"),
     ctx.supabase.from("investments").select("*"),
@@ -62,6 +64,11 @@ export default async function DashboardPage() {
       .order("captured_at", { ascending: false })
       .limit(12),
     ctx.supabase.from("categories").select("id, name, color, kind"),
+    ctx.supabase
+      .from("transfers")
+      .select("*")
+      .order("occurred_at", { ascending: false })
+      .limit(12),
   ]);
 
   const savings = (savingData ?? []) as Saving[];
@@ -69,11 +76,13 @@ export default async function DashboardPage() {
   const income = (incomeData ?? []) as Income[];
   const expenses = (expenseData ?? []) as Expense[];
   const reconciliations = (reconciliationData ?? []) as Reconciliation[];
+  const transfers = (transferData ?? []) as Transfer[];
   const categories = (categoryData ?? []) as Pick<
     Category,
     "id" | "name" | "color" | "kind"
   >[];
   const catMap = new Map(categories.map((c) => [c.id, c]));
+  const accountName = new Map(savings.map((s) => [s.id, s.account_name]));
 
   // One rate map covers every currency on the page.
   const rateMap = await getBaseRateMap(ctx.base, [
@@ -260,7 +269,7 @@ export default async function DashboardPage() {
   // Recent activity: one timestamp-sorted stream across every kind of entry.
   type Activity = {
     id: string;
-    kind: "income" | "expense" | "reconcile" | "position";
+    kind: "income" | "expense" | "reconcile" | "position" | "transfer";
     label: string;
     sublabel: string | null;
     amount: number;
@@ -313,6 +322,20 @@ export default async function DashboardPage() {
       tone: "muted",
       t: new Date(inv.created_at).getTime(),
     });
+  for (const t of transfers) {
+    const fromName = t.from_account ? accountName.get(t.from_account) ?? "Account" : "Account";
+    const toName = t.to_account ? accountName.get(t.to_account) ?? "Account" : "Account";
+    activity.push({
+      id: `xfer-${t.id}`,
+      kind: "transfer",
+      label: `${fromName} → ${toName}`,
+      sublabel: "Transfer",
+      amount: Number(t.from_amount),
+      currency: t.from_currency,
+      tone: "muted",
+      t: new Date(t.occurred_at).getTime(),
+    });
+  }
   activity.sort((a, b) => b.t - a.t);
 
   return (

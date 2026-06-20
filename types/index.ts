@@ -81,6 +81,8 @@ export type Income = {
   currency: string;
   frequency: IncomeFrequency;
   category_id: string | null;
+  account_id: string | null;
+  posted_amount: number | null;
   date: string;
   notes: string | null;
   created_at: string;
@@ -93,6 +95,8 @@ export type Expense = {
   amount: number;
   currency: string;
   category_id: string | null;
+  account_id: string | null;
+  posted_amount: number | null;
   date: string;
   notes: string | null;
   is_recurring: boolean;
@@ -128,6 +132,30 @@ export type BalanceSnapshot = {
   net_worth: number;
   assets: number;
   liabilities: number;
+};
+
+// A money move between two cash accounts. Cross-currency carries a distinct
+// amount on each side, in that side's account currency.
+export type Transfer = {
+  id: string;
+  user_id: string;
+  from_account: string | null;
+  to_account: string | null;
+  from_amount: number;
+  from_currency: string;
+  to_amount: number;
+  to_currency: string;
+  note: string | null;
+  occurred_at: string;
+  created_at: string;
+};
+
+// The slim account shape the forms and dialogs need: enough to label the option
+// and know its currency for posting.
+export type AccountRef = {
+  id: string;
+  account_name: string;
+  currency: string;
 };
 
 export type Reconciliation = {

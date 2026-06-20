@@ -1,8 +1,12 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import type { AccountRef } from "@/types";
 import { CURRENCIES, CURRENCY_OPTIONS } from "@/lib/finance/currencies";
-import { updateBaseCurrency } from "@/app/(app)/settings/actions";
+import {
+  updateBaseCurrency,
+  updateDefaultAccounts,
+} from "@/app/(app)/settings/actions";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { SelectMenu } from "@/components/ui/SelectMenu";
@@ -12,6 +16,9 @@ import { PageTransition } from "@/components/layout/PageTransition";
 type Props = {
   base: string;
   displayName: string;
+  accounts: AccountRef[];
+  defaultIncomeAccountId: string | null;
+  defaultExpenseAccountId: string | null;
   canWrite: boolean;
 };
 
@@ -19,7 +26,14 @@ function currencyName(code: string): string {
   return CURRENCIES.find((c) => c.code === code)?.name ?? code;
 }
 
-export function SettingsView({ base, displayName, canWrite }: Props) {
+export function SettingsView({
+  base,
+  displayName,
+  accounts,
+  defaultIncomeAccountId,
+  defaultExpenseAccountId,
+  canWrite,
+}: Props) {
   const [choice, setChoice] = useState(base);
   const [saved, setSaved] = useState(base);
   const [pending, start] = useTransition();
@@ -34,6 +48,44 @@ export function SettingsView({ base, displayName, canWrite }: Props) {
       if (res.ok) {
         setSaved(next);
         toast("Base currency updated.", "success");
+      } else {
+        toast(res.error, "error");
+      }
+    });
+  }
+
+  // Per-kind default accounts. Each new income and expense pre-fills these.
+  const [incomeAccount, setIncomeAccount] = useState(defaultIncomeAccountId ?? "");
+  const [expenseAccount, setExpenseAccount] = useState(
+    defaultExpenseAccountId ?? "",
+  );
+  const [savedAccounts, setSavedAccounts] = useState({
+    income: defaultIncomeAccountId ?? "",
+    expense: defaultExpenseAccountId ?? "",
+  });
+  const [accountsPending, startAccounts] = useTransition();
+
+  const accountsDirty =
+    incomeAccount !== savedAccounts.income ||
+    expenseAccount !== savedAccounts.expense;
+
+  const accountOptions = [
+    { value: "", label: "No default" },
+    ...accounts.map((a) => ({
+      value: a.id,
+      label: a.account_name,
+      hint: a.currency,
+    })),
+  ];
+
+  function saveAccounts() {
+    const income = incomeAccount;
+    const expense = expenseAccount;
+    startAccounts(async () => {
+      const res = await updateDefaultAccounts(income || null, expense || null);
+      if (res.ok) {
+        setSavedAccounts({ income, expense });
+        toast("Default accounts updated.", "success");
       } else {
         toast(res.error, "error");
       }
@@ -75,6 +127,57 @@ export function SettingsView({ base, displayName, canWrite }: Props) {
             <p className="text-xs text-text-faint">The demo account is read only.</p>
           )}
         </div>
+      </Card>
+
+      <Card className="mt-4 max-w-xl px-5 py-5">
+        <div className="flex flex-col gap-1">
+          <p className="text-sm text-text">Default accounts</p>
+          <p className="text-xs text-text-muted">
+            Where new entries land by default. Income deposits to one account and
+            expenses draw from another, each pre-filled on the form and still
+            changeable per entry.
+          </p>
+        </div>
+
+        {accounts.length === 0 ? (
+          <p className="mt-5 text-xs text-text-faint">
+            Add a savings account first to choose defaults.
+          </p>
+        ) : (
+          <>
+            <div className="mt-5 grid gap-4 sm:grid-cols-2">
+              <SelectMenu
+                id="default-income-account"
+                label="Income deposits to"
+                value={incomeAccount}
+                options={accountOptions}
+                onChange={setIncomeAccount}
+              />
+              <SelectMenu
+                id="default-expense-account"
+                label="Expenses draw from"
+                value={expenseAccount}
+                options={accountOptions}
+                onChange={setExpenseAccount}
+              />
+            </div>
+
+            <div className="mt-5 flex justify-end">
+              {canWrite ? (
+                <Button
+                  onClick={saveAccounts}
+                  disabled={!accountsDirty || accountsPending}
+                >
+                  {accountsPending ? "Saving" : "Save"}
+                </Button>
+              ) : (
+                <p className="text-xs text-text-faint">
+                  The demo account is read only.
+                </p>
+              )}
+            </div>
+          </>
+        )}
       </Card>
     </PageTransition>
   );

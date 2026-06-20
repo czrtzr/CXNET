@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import type { Category, Income, IncomeFrequency } from "@/types";
+import type { AccountRef, Category, Income, IncomeFrequency } from "@/types";
 import { INCOME_FREQUENCIES } from "@/types";
 import { CURRENCY_OPTIONS } from "@/lib/finance/currencies";
 import { Input } from "@/components/ui/Input";
@@ -28,6 +28,8 @@ export function IncomeForm({
   initial,
   base,
   categories,
+  accounts,
+  defaultAccountId,
   pending,
   onSubmit,
   onCancel,
@@ -36,6 +38,8 @@ export function IncomeForm({
   initial?: Income;
   base: string;
   categories: Category[];
+  accounts: AccountRef[];
+  defaultAccountId: string | null;
   pending: boolean;
   onSubmit: (input: IncomeInput) => void;
   onCancel: () => void;
@@ -51,6 +55,10 @@ export function IncomeForm({
   );
   const [categoryId, setCategoryId] = useState<string | null>(
     initial?.category_id ?? null,
+  );
+  // New entries land in the income default account; editing keeps its own.
+  const [accountId, setAccountId] = useState<string | null>(
+    initial ? initial.account_id : defaultAccountId,
   );
   const [date, setDate] = useState(initial?.date ?? today());
   const [notes, setNotes] = useState(initial?.notes ?? "");
@@ -69,6 +77,7 @@ export function IncomeForm({
       currency,
       frequency,
       category_id: categoryId,
+      account_id: accountId,
       date,
       notes,
     });
@@ -133,6 +142,23 @@ export function IncomeForm({
         onError={onError}
         kind="income"
       />
+
+      {accounts.length > 0 ? (
+        <SelectMenu
+          id="account"
+          label="Deposit to account"
+          value={accountId ?? ""}
+          onChange={(v) => setAccountId(v || null)}
+          options={[
+            { value: "", label: "No account" },
+            ...accounts.map((a) => ({
+              value: a.id,
+              label: a.account_name,
+              hint: a.currency,
+            })),
+          ]}
+        />
+      ) : null}
 
       <Textarea
         id="notes"

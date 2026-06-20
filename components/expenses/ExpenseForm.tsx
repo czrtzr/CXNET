@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import type { Category, Expense, RecurrenceInterval } from "@/types";
+import type { AccountRef, Category, Expense, RecurrenceInterval } from "@/types";
 import { RECURRENCE_INTERVALS } from "@/types";
 import { CURRENCY_OPTIONS } from "@/lib/finance/currencies";
 import { Input } from "@/components/ui/Input";
@@ -32,6 +32,8 @@ export function ExpenseForm({
   initial,
   base,
   categories,
+  accounts,
+  defaultAccountId,
   pending,
   onSubmit,
   onCancel,
@@ -40,6 +42,8 @@ export function ExpenseForm({
   initial?: Expense;
   base: string;
   categories: Category[];
+  accounts: AccountRef[];
+  defaultAccountId: string | null;
   pending: boolean;
   onSubmit: (input: ExpenseInput) => void;
   onCancel: () => void;
@@ -50,6 +54,10 @@ export function ExpenseForm({
   const [currency, setCurrency] = useState(initial?.currency ?? base);
   const [categoryId, setCategoryId] = useState<string | null>(
     initial?.category_id ?? null,
+  );
+  // New entries draw from the expense default account; editing keeps its own.
+  const [accountId, setAccountId] = useState<string | null>(
+    initial ? initial.account_id : defaultAccountId,
   );
   const [date, setDate] = useState(initial?.date ?? today());
   const [notes, setNotes] = useState(initial?.notes ?? "");
@@ -74,6 +82,7 @@ export function ExpenseForm({
       amount,
       currency,
       category_id: categoryId,
+      account_id: accountId,
       date,
       notes,
       is_recurring: isRecurring,
@@ -117,6 +126,23 @@ export function ExpenseForm({
         onChange={setCategoryId}
         onError={onError}
       />
+
+      {accounts.length > 0 ? (
+        <SelectMenu
+          id="account"
+          label="Paid from account"
+          value={accountId ?? ""}
+          onChange={(v) => setAccountId(v || null)}
+          options={[
+            { value: "", label: "No account" },
+            ...accounts.map((a) => ({
+              value: a.id,
+              label: a.account_name,
+              hint: a.currency,
+            })),
+          ]}
+        />
+      ) : null}
 
       <Input
         id="date"

@@ -12,6 +12,7 @@ import {
   ExpensesIcon,
   InvestmentsIcon,
   RefreshIcon,
+  SavingsIcon,
 } from "@/components/svg/icons";
 import { AllocationDonut, type Segment } from "./AllocationDonut";
 import { CashflowStrip } from "./CashflowStrip";
@@ -20,7 +21,7 @@ import type { CashEntry, TrendPoint } from "@/lib/finance/timeframe";
 
 type Activity = {
   id: string;
-  kind: "income" | "expense" | "reconcile" | "position";
+  kind: "income" | "expense" | "reconcile" | "position" | "transfer";
   label: string;
   sublabel: string | null;
   amount: number;
@@ -54,6 +55,7 @@ const GLYPH = {
   expense: ExpensesIcon,
   reconcile: RefreshIcon,
   position: InvestmentsIcon,
+  transfer: SavingsIcon,
 };
 
 function relativeDay(t: number): string {

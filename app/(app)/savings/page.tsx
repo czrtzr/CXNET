@@ -2,13 +2,17 @@ import { redirect } from "next/navigation";
 import { getSessionContext } from "@/lib/supabase/session";
 import { getBaseRateMap } from "@/lib/finance/fx";
 import { SavingsView, type Adjustment } from "@/components/savings/SavingsView";
-import type { Reconciliation, Saving } from "@/types";
+import type { Reconciliation, Saving, Transfer } from "@/types";
 
 export default async function SavingsPage() {
   const ctx = await getSessionContext();
   if (!ctx) redirect("/login");
 
-  const [{ data: savingData }, { data: reconciliationData }] = await Promise.all([
+  const [
+    { data: savingData },
+    { data: reconciliationData },
+    { data: transferData },
+  ] = await Promise.all([
     ctx.supabase
       .from("savings")
       .select("*")
@@ -17,10 +21,17 @@ export default async function SavingsPage() {
       .from("reconciliations")
       .select("*")
       .eq("target_type", "savings"),
+    ctx.supabase
+      .from("transfers")
+      .select("*")
+      .order("occurred_at", { ascending: false })
+      .order("created_at", { ascending: false })
+      .limit(50),
   ]);
 
   const rows = (savingData ?? []) as Saving[];
   const reconciliations = (reconciliationData ?? []) as Reconciliation[];
+  const transfers = (transferData ?? []) as Transfer[];
 
   // Net adjustment per account: gains add, shortfalls subtract.
   const adjustments: Record<string, Adjustment> = {};
@@ -42,6 +53,7 @@ export default async function SavingsPage() {
   return (
     <SavingsView
       rows={rows}
+      transfers={transfers}
       adjustments={adjustments}
       base={ctx.base}
       rateMap={rateMap}

@@ -2,7 +2,7 @@
 
 import { useMemo, useOptimistic, useState, useTransition } from "react";
 import { motion } from "motion/react";
-import type { Category, Income } from "@/types";
+import type { AccountRef, Category, Income } from "@/types";
 import {
   createIncome,
   updateIncome,
@@ -25,6 +25,8 @@ import { IncomeForm } from "./IncomeForm";
 type Props = {
   rows: Income[];
   categories: Category[];
+  accounts: AccountRef[];
+  defaultAccountId: string | null;
   base: string;
   rateMap: Record<string, number>;
   canWrite: boolean;
@@ -50,7 +52,15 @@ const FREQUENCY_BADGE: Record<Income["frequency"], string> = {
   one_time: "One time",
 };
 
-export function IncomeView({ rows, categories, base, rateMap, canWrite }: Props) {
+export function IncomeView({
+  rows,
+  categories,
+  accounts,
+  defaultAccountId,
+  base,
+  rateMap,
+  canWrite,
+}: Props) {
   const [optimistic, apply] = useOptimistic(rows, reduce);
   const [pending, start] = useTransition();
   const [open, setOpen] = useState(false);
@@ -58,6 +68,7 @@ export function IncomeView({ rows, categories, base, rateMap, canWrite }: Props)
   const { toast } = useToast();
 
   const categoryMap = new Map(categories.map((c) => [c.id, c]));
+  const accountMap = new Map(accounts.map((a) => [a.id, a]));
 
   let monthlyTotal = 0;
   let unconverted = 0;
@@ -94,6 +105,7 @@ export function IncomeView({ rows, categories, base, rateMap, canWrite }: Props)
             ...input,
             amount: Number(String(input.amount).replace(/[\s,]/g, "")),
             category_id: input.category_id ?? null,
+            account_id: input.account_id ?? null,
           },
         });
         const res = await updateIncome(target.id, input);
@@ -110,6 +122,8 @@ export function IncomeView({ rows, categories, base, rateMap, canWrite }: Props)
             currency: input.currency,
             frequency: input.frequency,
             category_id: input.category_id ?? null,
+            account_id: input.account_id ?? null,
+            posted_amount: null,
             date: input.date,
             notes: input.notes ?? null,
           },
@@ -197,7 +211,7 @@ export function IncomeView({ rows, categories, base, rateMap, canWrite }: Props)
                       <p className="truncate text-sm text-text">{row.source}</p>
                       <Badge>{FREQUENCY_BADGE[row.frequency]}</Badge>
                     </div>
-                    <div className="mt-1 flex items-center gap-2 text-xs text-text-faint">
+                    <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-text-faint">
                       <span>{row.date}</span>
                       {row.category_id && categoryMap.has(row.category_id) ? (
                         <span className="flex items-center gap-1.5">
@@ -208,6 +222,11 @@ export function IncomeView({ rows, categories, base, rateMap, canWrite }: Props)
                             }}
                           />
                           {categoryMap.get(row.category_id)!.name}
+                        </span>
+                      ) : null}
+                      {row.account_id && accountMap.has(row.account_id) ? (
+                        <span className="text-text-faint">
+                          · {accountMap.get(row.account_id)!.account_name}
                         </span>
                       ) : null}
                     </div>
@@ -275,6 +294,8 @@ export function IncomeView({ rows, categories, base, rateMap, canWrite }: Props)
           initial={editing ?? undefined}
           base={base}
           categories={categories}
+          accounts={accounts}
+          defaultAccountId={defaultAccountId}
           pending={pending}
           onSubmit={submit}
           onCancel={() => {

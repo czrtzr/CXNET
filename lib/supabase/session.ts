@@ -11,6 +11,8 @@ export type SessionContext = {
   role: UserRole;
   base: string;
   displayName: string;
+  defaultIncomeAccountId: string | null;
+  defaultExpenseAccountId: string | null;
 };
 
 export async function getSessionContext(): Promise<SessionContext | null> {
@@ -22,7 +24,9 @@ export async function getSessionContext(): Promise<SessionContext | null> {
 
   const { data: profile } = await supabase
     .from("profiles")
-    .select("role, base_currency, display_name, email")
+    .select(
+      "role, base_currency, display_name, email, default_income_account_id, default_expense_account_id",
+    )
     .eq("id", user.id)
     .single();
 
@@ -32,5 +36,7 @@ export async function getSessionContext(): Promise<SessionContext | null> {
     role: (profile?.role as UserRole | undefined) ?? "user",
     base: profile?.base_currency ?? "USD",
     displayName: profile?.display_name ?? profile?.email ?? user.email ?? "",
+    defaultIncomeAccountId: profile?.default_income_account_id ?? null,
+    defaultExpenseAccountId: profile?.default_expense_account_id ?? null,
   };
 }

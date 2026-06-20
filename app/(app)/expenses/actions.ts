@@ -9,6 +9,7 @@ import {
   isHexColor,
 } from "@/lib/finance/input";
 import { isCurrencyCode } from "@/lib/finance/currencies";
+import { accountDelta } from "@/lib/finance/posting";
 import {
   RECURRENCE_INTERVALS,
   CATEGORY_KINDS,
@@ -27,11 +28,20 @@ export type ExpenseInput = {
   amount: number | string;
   currency: string;
   category_id: string | null;
+  account_id?: string | null;
   date: string;
   notes?: string | null;
   is_recurring: boolean;
   recurrence: RecurrenceInterval | null;
 };
+
+// An expense that posts to an account refreshes that account's balance and the
+// net-worth views, not just the expense list.
+function revalidateAll() {
+  revalidatePath("/expenses");
+  revalidatePath("/savings");
+  revalidatePath("/dashboard");
+}
 
 const NO_SESSION = "Your session has ended. Sign in again.";
 const SAVE_FAILED = "That did not save. Try again.";
@@ -41,6 +51,7 @@ type BuiltExpense = {
   amount: number;
   currency: string;
   category_id: string | null;
+  account_id: string | null;
   date: string;
   notes: string | null;
   is_recurring: boolean;
@@ -76,6 +87,7 @@ function build(
       amount,
       currency: input.currency,
       category_id: input.category_id || null,
+      account_id: input.account_id || null,
       date: input.date,
       notes: cleanText(input.notes, 1000),
       is_recurring: isRecurring,
@@ -94,12 +106,21 @@ export async function createExpense(input: ExpenseInput): Promise<ActionResult> 
   const built = build(input);
   if (!built.ok) return built;
 
+  const posted_amount = await accountDelta(
+    supabase,
+    user.id,
+    built.payload.account_id,
+    built.payload.amount,
+    built.payload.currency,
+    -1,
+  );
+
   const { error: dbError } = await supabase
     .from("expenses")
-    .insert({ ...built.payload, user_id: user.id });
+    .insert({ ...built.payload, posted_amount, user_id: user.id });
   if (dbError) return { ok: false, error: SAVE_FAILED };
 
-  revalidatePath("/expenses");
+  revalidateAll();
   return { ok: true };
 }
 
@@ -116,14 +137,23 @@ export async function updateExpense(
   const built = build(input);
   if (!built.ok) return built;
 
+  const posted_amount = await accountDelta(
+    supabase,
+    user.id,
+    built.payload.account_id,
+    built.payload.amount,
+    built.payload.currency,
+    -1,
+  );
+
   const { error: dbError } = await supabase
     .from("expenses")
-    .update(built.payload)
+    .update({ ...built.payload, posted_amount })
     .eq("id", id)
     .eq("user_id", user.id);
   if (dbError) return { ok: false, error: SAVE_FAILED };
 
-  revalidatePath("/expenses");
+  revalidateAll();
   return { ok: true };
 }
 
@@ -141,7 +171,7 @@ export async function deleteExpense(id: string): Promise<ActionResult> {
     .eq("user_id", user.id);
   if (error) return { ok: false, error: "That did not delete. Try again." };
 
-  revalidatePath("/expenses");
+  revalidateAll();
   return { ok: true };
 }
 
