@@ -1,6 +1,6 @@
 "use client";
 
-import { useOptimistic, useState, useTransition } from "react";
+import { useMemo, useOptimistic, useState, useTransition } from "react";
 import { motion } from "motion/react";
 import type { Category, Income } from "@/types";
 import {
@@ -19,6 +19,7 @@ import { Modal } from "@/components/ui/Modal";
 import { useToast } from "@/components/ui/Toast";
 import { PageTransition } from "@/components/layout/PageTransition";
 import { EmptyState } from "@/components/finance/EmptyState";
+import { ChangeView } from "@/components/finance/ChangeView";
 import { IncomeForm } from "./IncomeForm";
 
 type Props = {
@@ -67,6 +68,18 @@ export function IncomeView({ rows, categories, base, rateMap, canWrite }: Props)
     if (converted == null) unconverted += 1;
     else monthlyTotal += converted;
   }
+
+  // Actual logged income by date, in base currency, for the change view.
+  const flow = useMemo(
+    () =>
+      optimistic
+        .map((r) => {
+          const v = convertToBase(Number(r.amount), r.currency, base, rateMap);
+          return v == null ? null : { t: new Date(`${r.date}T00:00:00`).getTime(), v };
+        })
+        .filter((e): e is { t: number; v: number } => e != null),
+    [optimistic, base, rateMap],
+  );
 
   function submit(input: IncomeInput) {
     const target = editing;
@@ -143,6 +156,10 @@ export function IncomeView({ rows, categories, base, rateMap, canWrite }: Props)
           </Button>
         ) : null}
       </div>
+
+      {optimistic.length > 0 ? (
+        <ChangeView entries={flow} currency={base} higherIsBetter />
+      ) : null}
 
       {optimistic.length === 0 ? (
         <EmptyState

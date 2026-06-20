@@ -3,8 +3,9 @@
 import { useMemo, useRef, useState } from "react";
 import { motion, useReducedMotion } from "motion/react";
 import { formatCurrency } from "@/lib/finance/format";
+import type { TrendPoint } from "@/lib/finance/timeframe";
 
-export type TrendPoint = { t: number; v: number };
+export type { TrendPoint };
 
 const W = 720;
 const H = 220;

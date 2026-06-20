@@ -1,6 +1,6 @@
 "use client";
 
-import { useOptimistic, useState, useTransition } from "react";
+import { useMemo, useOptimistic, useState, useTransition } from "react";
 import { motion } from "motion/react";
 import type { Category, Expense } from "@/types";
 import {
@@ -18,6 +18,7 @@ import { Modal } from "@/components/ui/Modal";
 import { useToast } from "@/components/ui/Toast";
 import { PageTransition } from "@/components/layout/PageTransition";
 import { EmptyState } from "@/components/finance/EmptyState";
+import { ChangeView } from "@/components/finance/ChangeView";
 import { ExpenseForm } from "./ExpenseForm";
 
 type Props = {
@@ -70,6 +71,18 @@ export function ExpensesView({ rows, categories, base, rateMap, canWrite }: Prop
     if (converted == null) unconverted += 1;
     else total += converted;
   }
+
+  // Actual logged spending by date, in base currency, for the change view.
+  const flow = useMemo(
+    () =>
+      optimistic
+        .map((r) => {
+          const v = convertToBase(Number(r.amount), r.currency, base, rateMap);
+          return v == null ? null : { t: new Date(`${r.date}T00:00:00`).getTime(), v };
+        })
+        .filter((e): e is { t: number; v: number } => e != null),
+    [optimistic, base, rateMap],
+  );
 
   // Group newest first by calendar month for the list.
   const groups: { label: string; rows: Expense[] }[] = [];
@@ -159,6 +172,10 @@ export function ExpensesView({ rows, categories, base, rateMap, canWrite }: Prop
           </Button>
         ) : null}
       </div>
+
+      {optimistic.length > 0 ? (
+        <ChangeView entries={flow} currency={base} higherIsBetter={false} />
+      ) : null}
 
       {optimistic.length === 0 ? (
         <EmptyState

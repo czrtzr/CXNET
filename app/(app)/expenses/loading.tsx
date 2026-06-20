@@ -1,5 +1,5 @@
-import { ScreenSkeleton } from "@/components/finance/ScreenSkeleton";
+import { ScreenLoader } from "@/components/finance/ScreenLoader";
 
 export default function Loading() {
-  return <ScreenSkeleton label="Expenses" variant="list" />;
+  return <ScreenLoader label="Expenses" />;
 }

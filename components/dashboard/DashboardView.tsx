@@ -14,9 +14,9 @@ import {
   RefreshIcon,
 } from "@/components/svg/icons";
 import { AllocationDonut, type Segment } from "./AllocationDonut";
-import { NetWorthTrend, type TrendPoint } from "./NetWorthTrend";
 import { CashflowStrip } from "./CashflowStrip";
-import { CashflowChart, type CashEntry } from "./CashflowChart";
+import { MainChart } from "./MainChart";
+import type { CashEntry, TrendPoint } from "@/lib/finance/timeframe";
 
 type Activity = {
   id: string;
@@ -170,30 +170,15 @@ export function DashboardView({
 
       {!hasData ? null : (
         <>
-          {/* Net worth over time */}
+          {/* Headline chart: net worth or cashflow, over a shared timeframe */}
           <Reveal delay={0.1}>
             <Card className="mt-6 px-5 py-5">
-              <SectionLabel>Net worth over time</SectionLabel>
-              <div className="mt-4">
-                <NetWorthTrend points={trend} currency={base} />
-              </div>
-            </Card>
-          </Reveal>
-
-          {/* Cashflow over time: actual income against spending */}
-          <Reveal delay={0.16}>
-            <Card className="mt-4 px-5 py-5">
-              <SectionLabel>Cashflow</SectionLabel>
-              <p className="mt-1 text-xs text-text-faint">
-                Income against spending, by week or month.
-              </p>
-              <div className="mt-4">
-                <CashflowChart
-                  income={incomeFlow}
-                  expense={expenseFlow}
-                  currency={base}
-                />
-              </div>
+              <MainChart
+                trend={trend}
+                income={incomeFlow}
+                expense={expenseFlow}
+                currency={base}
+              />
             </Card>
           </Reveal>
 
