@@ -1,5 +1,5 @@
 import { ScreenLoader } from "@/components/finance/ScreenLoader";
 
 export default function Loading() {
-  return <ScreenLoader label="Savings" />;
+  return <ScreenLoader label="Accounts" />;
 }

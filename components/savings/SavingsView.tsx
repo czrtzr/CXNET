@@ -2,7 +2,8 @@
 
 import { useOptimistic, useState, useTransition } from "react";
 import { motion } from "motion/react";
-import type { Saving, Transfer } from "@/types";
+import type { AccountLogEntry, Saving, Transfer } from "@/types";
+import { ACCOUNT_TYPE_LABELS } from "@/types";
 import {
   createSaving,
   updateSaving,
@@ -12,7 +13,7 @@ import {
   deleteTransfer,
   type SavingInput,
   type TransferInput,
-} from "@/app/(app)/savings/actions";
+} from "@/app/(app)/accounts/actions";
 import { goalProgress } from "@/lib/finance/calculations";
 import { convertToBase } from "@/lib/finance/currencies";
 import { formatPercent } from "@/lib/finance/format";
@@ -34,6 +35,10 @@ type Props = {
   rows: Saving[];
   transfers: Transfer[];
   adjustments: Record<string, Adjustment>;
+  // Live value of positions held in each account, in the account's own currency.
+  linkedValues: Record<string, number>;
+  // Activity log per account, newest first.
+  logs: Record<string, AccountLogEntry[]>;
   base: string;
   rateMap: Record<string, number>;
   canWrite: boolean;
@@ -72,10 +77,67 @@ function numeric(value: number | string): number {
   return Number(String(value).replace(/[\s,]/g, ""));
 }
 
+const LOG_KIND_LABEL: Record<AccountLogEntry["kind"], string> = {
+  income: "Income",
+  expense: "Expense",
+  transfer_in: "Transfer in",
+  transfer_out: "Transfer out",
+  reconcile: "Adjustment",
+};
+
+// The expandable per-account ledger. Every leg is signed in the account's own
+// currency, money in green and money out oxblood, newest first.
+function AccountLog({ entries }: { entries: AccountLogEntry[] }) {
+  return (
+    <motion.div
+      initial={{ opacity: 0, height: 0 }}
+      animate={{ opacity: 1, height: "auto" }}
+      transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
+      className="overflow-hidden"
+    >
+      {entries.length === 0 ? (
+        <p className="mt-3 border-t border-border pt-3 text-xs text-text-faint">
+          No activity yet.
+        </p>
+      ) : (
+        <ul className="mt-3 space-y-2 border-t border-border pt-3">
+          {entries.slice(0, 20).map((e) => (
+            <li
+              key={e.id}
+              className="flex items-center justify-between gap-3 text-xs"
+            >
+              <div className="min-w-0">
+                <p className="truncate text-text-muted">{e.label}</p>
+                <p className="text-text-faint">
+                  {LOG_KIND_LABEL[e.kind]} · {e.date}
+                </p>
+              </div>
+              <Amount
+                value={e.amount}
+                currency={e.currency}
+                signed
+                tone={e.amount >= 0 ? "pos" : "neg"}
+                className="shrink-0"
+              />
+            </li>
+          ))}
+          {entries.length > 20 ? (
+            <li className="text-xs text-text-faint">
+              +{entries.length - 20} more
+            </li>
+          ) : null}
+        </ul>
+      )}
+    </motion.div>
+  );
+}
+
 export function SavingsView({
   rows,
   transfers,
   adjustments,
+  linkedValues,
+  logs,
   base,
   rateMap,
   canWrite,
@@ -87,25 +149,40 @@ export function SavingsView({
   const [editing, setEditing] = useState<Saving | null>(null);
   const [reconciling, setReconciling] = useState<Saving | null>(null);
   const [transferring, setTransferring] = useState(false);
+  const [transferFrom, setTransferFrom] = useState<string | null>(null);
+  const [expandedLog, setExpandedLog] = useState<string | null>(null);
   const { toast } = useToast();
+
+  const multipleAccounts = optimistic.length >= 2;
+  function openTransfer(fromId: string | null) {
+    setTransferFrom(fromId);
+    setTransferring(true);
+  }
 
   const accountName = new Map(optimistic.map((r) => [r.id, r.account_name]));
   const accountRefs = optimistic.map((r) => ({
     id: r.id,
     account_name: r.account_name,
+    account_type: r.account_type,
     currency: r.currency,
   }));
+
+  // Each account's effective balance is its cash balance plus the live value of
+  // any positions held inside it (mirrored, in the account's currency).
+  const effectiveBalance = (r: Saving) =>
+    Number(r.balance) + (linkedValues[r.id] ?? 0);
 
   let total = 0;
   let unconverted = 0;
   for (const r of optimistic) {
-    const converted = convertToBase(Number(r.balance), r.currency, base, rateMap);
+    const converted = convertToBase(effectiveBalance(r), r.currency, base, rateMap);
     if (converted == null) unconverted += 1;
     else total += converted;
   }
 
   function confirmTransfer(input: TransferInput) {
     setTransferring(false);
+    setTransferFrom(null);
     const from = optimistic.find((r) => r.id === input.from_account);
     const to = optimistic.find((r) => r.id === input.to_account);
     if (!from || !to) return;
@@ -153,6 +230,7 @@ export function SavingsView({
     start(async () => {
       const shaped = {
         account_name: input.account_name,
+        account_type: input.account_type ?? "savings",
         balance: numeric(input.balance),
         currency: input.currency,
         goal_amount: input.goal_amount == null || input.goal_amount === "" ? null : numeric(input.goal_amount),
@@ -205,7 +283,7 @@ export function SavingsView({
       <div className="flex items-start justify-between gap-4">
         <div>
           <p className="text-xs uppercase tracking-[0.22em] text-text-faint">
-            Savings
+            Accounts
           </p>
           <p className="mt-3 font-serif text-4xl tracking-tight text-text">
             <Amount value={total} currency={base} quiet code />
@@ -218,8 +296,8 @@ export function SavingsView({
         </div>
         {canWrite ? (
           <div className="flex items-center gap-2">
-            {optimistic.length >= 2 ? (
-              <Button variant="outline" onClick={() => setTransferring(true)}>
+            {multipleAccounts ? (
+              <Button variant="outline" onClick={() => openTransfer(null)}>
                 Transfer
               </Button>
             ) : null}
@@ -255,7 +333,11 @@ export function SavingsView({
       ) : (
         <div className="mt-8 grid gap-3 sm:grid-cols-2">
           {optimistic.map((row) => {
-            const progress = goalProgress(Number(row.balance), row.goal_amount);
+            const linked = linkedValues[row.id] ?? 0;
+            const effective = effectiveBalance(row);
+            const log = logs[row.id] ?? [];
+            const logOpen = expandedLog === row.id;
+            const progress = goalProgress(effective, row.goal_amount);
             const adjustment = adjustments[row.id];
             const isTemp = row.id.startsWith("temp-");
             return (
@@ -271,11 +353,12 @@ export function SavingsView({
                       <p className="truncate text-sm text-text">
                         {row.account_name}
                       </p>
-                      {row.institution ? (
-                        <p className="mt-0.5 truncate text-xs text-text-faint">
-                          {row.institution}
-                        </p>
-                      ) : null}
+                      <p className="mt-0.5 truncate text-xs text-text-faint">
+                        <span className="uppercase tracking-[0.14em]">
+                          {ACCOUNT_TYPE_LABELS[row.account_type]}
+                        </span>
+                        {row.institution ? ` · ${row.institution}` : ""}
+                      </p>
                     </div>
                     <div className="flex flex-wrap items-center justify-end gap-1.5">
                       {row.apy != null ? (
@@ -290,8 +373,15 @@ export function SavingsView({
                   </div>
 
                   <p className="mt-4 font-serif text-2xl tracking-tight text-text">
-                    <Amount value={Number(row.balance)} currency={row.currency} quiet code />
+                    <Amount value={effective} currency={row.currency} quiet code />
                   </p>
+                  {linked !== 0 ? (
+                    <p className="mt-1 text-xs text-text-faint">
+                      Includes{" "}
+                      <Amount value={linked} currency={row.currency} tone="muted" />{" "}
+                      in investments
+                    </p>
+                  ) : null}
 
                   {progress != null ? (
                     <div className="mt-4">
@@ -324,35 +414,60 @@ export function SavingsView({
                     </p>
                   ) : null}
 
-                  {canWrite && !isTemp ? (
-                    <div className="mt-4 flex items-center gap-2 border-t border-border pt-3">
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => setReconciling(row)}
+                  {!isTemp ? (
+                    <div className="mt-auto flex items-center gap-2 border-t border-border pt-3">
+                      {canWrite ? (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => setReconciling(row)}
+                        >
+                          Set actual balance
+                        </Button>
+                      ) : null}
+                      <button
+                        type="button"
+                        onClick={() => setExpandedLog(logOpen ? null : row.id)}
+                        aria-expanded={logOpen}
+                        className="rounded-sm px-2 py-1 text-xs text-text-muted transition hover:bg-surface-hover hover:text-text"
                       >
-                        Set actual balance
-                      </Button>
-                      <div className="ml-auto flex items-center gap-1 opacity-0 transition group-hover:opacity-100">
+                        {logOpen ? "Hide log" : `Log${log.length ? ` · ${log.length}` : ""}`}
+                      </button>
+                      {canWrite && multipleAccounts ? (
                         <button
                           type="button"
-                          onClick={() => {
-                            setEditing(row);
-                            setOpen(true);
-                          }}
+                          onClick={() => openTransfer(row.id)}
                           className="rounded-sm px-2 py-1 text-xs text-text-muted transition hover:bg-surface-hover hover:text-text"
                         >
-                          Edit
+                          Transfer
                         </button>
-                        <button
-                          type="button"
-                          onClick={() => remove(row)}
-                          className="rounded-sm px-2 py-1 text-xs text-text-muted transition hover:bg-surface-hover hover:text-neg"
-                        >
-                          Remove
-                        </button>
-                      </div>
+                      ) : null}
+                      {canWrite ? (
+                        <div className="ml-auto flex items-center gap-1 opacity-0 transition group-hover:opacity-100">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setEditing(row);
+                              setOpen(true);
+                            }}
+                            className="rounded-sm px-2 py-1 text-xs text-text-muted transition hover:bg-surface-hover hover:text-text"
+                          >
+                            Edit
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => remove(row)}
+                            className="rounded-sm px-2 py-1 text-xs text-text-muted transition hover:bg-surface-hover hover:text-neg"
+                          >
+                            Remove
+                          </button>
+                        </div>
+                      ) : null}
                     </div>
+                  ) : null}
+
+                  {logOpen ? (
+                    <AccountLog entries={log} />
                   ) : null}
                 </Card>
               </motion.div>
@@ -436,7 +551,11 @@ export function SavingsView({
         accounts={accountRefs}
         rateMap={rateMap}
         pending={pending}
-        onClose={() => setTransferring(false)}
+        presetFrom={transferFrom ?? undefined}
+        onClose={() => {
+          setTransferring(false);
+          setTransferFrom(null);
+        }}
         onConfirm={confirmTransfer}
       />
 

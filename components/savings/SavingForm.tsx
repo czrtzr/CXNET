@@ -1,13 +1,14 @@
 "use client";
 
 import { useState } from "react";
-import type { Saving } from "@/types";
+import type { AccountType, Saving } from "@/types";
+import { ACCOUNT_TYPES, ACCOUNT_TYPE_LABELS } from "@/types";
 import { CURRENCIES } from "@/lib/finance/currencies";
 import { Input } from "@/components/ui/Input";
 import { Select } from "@/components/ui/Select";
 import { Textarea } from "@/components/ui/Textarea";
 import { Button } from "@/components/ui/Button";
-import type { SavingInput } from "@/app/(app)/savings/actions";
+import type { SavingInput } from "@/app/(app)/accounts/actions";
 
 function numeric(value: string): number {
   return Number(value.replace(/[\s,]/g, ""));
@@ -27,6 +28,9 @@ export function SavingForm({
   onCancel: () => void;
 }) {
   const [accountName, setAccountName] = useState(initial?.account_name ?? "");
+  const [accountType, setAccountType] = useState<AccountType>(
+    initial?.account_type ?? "savings",
+  );
   const [balance, setBalance] = useState(initial ? String(initial.balance) : "");
   const [currency, setCurrency] = useState(initial?.currency ?? base);
   const [goal, setGoal] = useState(
@@ -48,6 +52,7 @@ export function SavingForm({
     if (!nameValid || !balanceValid) return;
     onSubmit({
       account_name: accountName,
+      account_type: accountType,
       balance,
       currency,
       goal_amount: goal === "" ? null : goal,
@@ -59,14 +64,28 @@ export function SavingForm({
 
   return (
     <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-      <Input
-        id="account"
-        label="Account"
-        value={accountName}
-        onChange={(e) => setAccountName(e.target.value)}
-        error={touched && !nameValid ? "Name the account." : undefined}
-        autoFocus
-      />
+      <div className="grid grid-cols-[1fr_auto] gap-3">
+        <Input
+          id="account"
+          label="Account"
+          value={accountName}
+          onChange={(e) => setAccountName(e.target.value)}
+          error={touched && !nameValid ? "Name the account." : undefined}
+          autoFocus
+        />
+        <Select
+          id="account-type"
+          label="Type"
+          value={accountType}
+          onChange={(e) => setAccountType(e.target.value as AccountType)}
+        >
+          {ACCOUNT_TYPES.map((t) => (
+            <option key={t} value={t}>
+              {ACCOUNT_TYPE_LABELS[t]}
+            </option>
+          ))}
+        </Select>
+      </div>
 
       <div className="grid grid-cols-[1fr_auto] gap-3">
         <Input

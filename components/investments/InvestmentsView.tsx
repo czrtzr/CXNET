@@ -2,7 +2,7 @@
 
 import { useOptimistic, useState, useTransition } from "react";
 import { AnimatePresence, motion } from "motion/react";
-import type { Investment } from "@/types";
+import type { AccountRef, Investment } from "@/types";
 import { LIVE_INVESTMENT_TYPES } from "@/types";
 import {
   createInvestment,
@@ -27,6 +27,7 @@ import { PositionDetail } from "./PositionDetail";
 type Props = {
   rows: Investment[];
   adjustedIds: string[];
+  accounts: AccountRef[];
   base: string;
   rateMap: Record<string, number>;
   canWrite: boolean;
@@ -53,6 +54,7 @@ function numeric(value: number | string | null | undefined): number | null {
 export function InvestmentsView({
   rows,
   adjustedIds,
+  accounts,
   base,
   rateMap,
   canWrite,
@@ -67,6 +69,7 @@ export function InvestmentsView({
   const { toast } = useToast();
 
   const adjusted = new Set(adjustedIds);
+  const accountNameById = new Map(accounts.map((a) => [a.id, a.account_name]));
 
   let total = 0;
   let unconverted = 0;
@@ -101,6 +104,7 @@ export function InvestmentsView({
       current_price: numeric(input.current_price),
       currency: input.currency,
       type: input.type,
+      account_id: input.account_id ?? null,
       is_live_priced: isLive,
     };
     start(async () => {
@@ -230,6 +234,9 @@ export function InvestmentsView({
                 rateMap={rateMap}
                 offline={row.ticker ? offline.has(row.ticker) : false}
                 adjusted={adjusted.has(row.id)}
+                accountName={
+                  row.account_id ? accountNameById.get(row.account_id) : undefined
+                }
                 onOpen={() => setDetailId(row.id)}
               />
             ))}
@@ -249,6 +256,7 @@ export function InvestmentsView({
         <InvestmentForm
           initial={editing ?? undefined}
           base={base}
+          accounts={accounts}
           pending={pending}
           onSubmit={submit}
           onCancel={() => {

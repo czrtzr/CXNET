@@ -4,11 +4,13 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { parseAmount, cleanText, isValidDate } from "@/lib/finance/input";
 import { isCurrencyCode } from "@/lib/finance/currencies";
+import { ACCOUNT_TYPES, type AccountType } from "@/types";
 
 export type ActionResult = { ok: true } | { ok: false; error: string };
 
 export type SavingInput = {
   account_name: string;
+  account_type?: AccountType;
   balance: number | string;
   currency: string;
   goal_amount?: number | string | null;
@@ -27,6 +29,7 @@ function optionalAmount(value: unknown): number | null {
 
 type BuiltSaving = {
   account_name: string;
+  account_type: AccountType;
   balance: number;
   currency: string;
   goal_amount: number | null;
@@ -55,10 +58,17 @@ function build(
   if (input.apy != null && input.apy !== "" && apy == null)
     return { ok: false, error: "Enter a valid rate." };
 
+  const accountType: AccountType = ACCOUNT_TYPES.includes(
+    input.account_type as AccountType,
+  )
+    ? (input.account_type as AccountType)
+    : "savings";
+
   return {
     ok: true,
     payload: {
       account_name: accountName,
+      account_type: accountType,
       balance,
       currency: input.currency,
       goal_amount: goal,
@@ -84,7 +94,7 @@ export async function createSaving(input: SavingInput): Promise<ActionResult> {
     .insert({ ...built.payload, user_id: user.id });
   if (dbError) return { ok: false, error: SAVE_FAILED };
 
-  revalidatePath("/savings");
+  revalidatePath("/accounts");
   return { ok: true };
 }
 
@@ -108,7 +118,7 @@ export async function updateSaving(
     .eq("user_id", user.id);
   if (dbError) return { ok: false, error: SAVE_FAILED };
 
-  revalidatePath("/savings");
+  revalidatePath("/accounts");
   return { ok: true };
 }
 
@@ -126,16 +136,17 @@ export async function deleteSaving(id: string): Promise<ActionResult> {
     .eq("user_id", user.id);
   if (error) return { ok: false, error: "That did not delete. Try again." };
 
-  revalidatePath("/savings");
+  revalidatePath("/accounts");
   return { ok: true };
 }
 
-// Set the true balance of a savings account. The gap against the tracked balance
-// is booked as a single labeled adjustment in reconciliations (a gain when the
-// real total is higher, a shortfall when lower), then the balance snaps to the
-// actual figure. Nothing is silently overwritten: the adjustment is the record
-// of what moved. The audit row is written first, so a later failure leaves a
-// trace rather than a quietly changed balance.
+// Set the true balance of an account. The gap against the tracked balance is
+// booked as a real entry — an income when the true total is higher, an expense
+// when lower — tagged to the account so the posting trigger moves the balance to
+// exactly the figure entered. The adjustment therefore shows up in cashflow and
+// the account log like any other movement, rather than living in a separate
+// ledger. The current balance is re-read server side so the result lands on the
+// entered figure even if the balance shifted since the dialog opened.
 export async function reconcileSaving(
   id: string,
   actual: number | string,
@@ -150,16 +161,52 @@ export async function reconcileSaving(
   const actualBalance = parseAmount(actual);
   if (actualBalance == null) return { ok: false, error: "Enter the true balance." };
 
-  // One atomic call: books the gain or shortfall adjustment and snaps the
-  // balance together, with ownership and guest checks enforced server side.
-  const { error } = await supabase.rpc("reconcile_savings", {
-    p_target: id,
-    p_actual: actualBalance,
-    p_note: cleanText(note, 500),
-  });
+  const { data: account } = await supabase
+    .from("savings")
+    .select("balance, currency")
+    .eq("id", id)
+    .eq("user_id", user.id)
+    .single();
+  if (!account) return { ok: false, error: "Pick an account you own." };
+
+  // The signed delta needed to reach the entered balance, in the account's own
+  // currency. posted_amount carries this exact figure, so the trigger lands the
+  // balance on `actual`.
+  const delta = actualBalance - Number(account.balance);
+  if (delta === 0) return { ok: true };
+
+  const today = new Date().toISOString().slice(0, 10);
+  const cleanNote = cleanText(note, 500);
+
+  const { error } =
+    delta > 0
+      ? await supabase.from("income").insert({
+          user_id: user.id,
+          source: "Balance adjustment",
+          amount: delta,
+          currency: account.currency,
+          frequency: "one_time",
+          account_id: id,
+          posted_amount: delta,
+          date: today,
+          notes: cleanNote,
+        })
+      : await supabase.from("expenses").insert({
+          user_id: user.id,
+          description: "Balance adjustment",
+          amount: -delta,
+          currency: account.currency,
+          account_id: id,
+          posted_amount: delta,
+          date: today,
+          is_recurring: false,
+          notes: cleanNote,
+        });
   if (error) return { ok: false, error: SAVE_FAILED };
 
-  revalidatePath("/savings");
+  revalidatePath("/accounts");
+  revalidatePath(delta > 0 ? "/income" : "/expenses");
+  revalidatePath("/dashboard");
   return { ok: true };
 }
 
@@ -218,7 +265,7 @@ export async function createTransfer(input: TransferInput): Promise<ActionResult
   });
   if (error) return { ok: false, error: SAVE_FAILED };
 
-  revalidatePath("/savings");
+  revalidatePath("/accounts");
   revalidatePath("/dashboard");
   return { ok: true };
 }
@@ -239,7 +286,7 @@ export async function deleteTransfer(id: string): Promise<ActionResult> {
     .eq("user_id", user.id);
   if (error) return { ok: false, error: "That did not delete. Try again." };
 
-  revalidatePath("/savings");
+  revalidatePath("/accounts");
   revalidatePath("/dashboard");
   return { ok: true };
 }

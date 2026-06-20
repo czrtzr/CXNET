@@ -23,7 +23,7 @@ export default async function IncomePage() {
         .order("name", { ascending: true }),
       ctx.supabase
         .from("savings")
-        .select("id, account_name, currency")
+        .select("id, account_name, account_type, currency")
         .order("created_at", { ascending: false }),
     ]);
 

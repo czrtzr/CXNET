@@ -25,6 +25,7 @@ export type InvestmentInput = {
   current_price?: number | string | null;
   currency: string;
   type: InvestmentType;
+  account_id?: string | null;
   purchase_date?: string | null;
   notes?: string | null;
 };
@@ -40,6 +41,7 @@ type BuiltInvestment = {
   current_price: number | null;
   currency: string;
   type: InvestmentType;
+  account_id: string | null;
   is_live_priced: boolean;
   purchase_date: string | null;
   notes: string | null;
@@ -83,6 +85,7 @@ function build(
       current_price: optional(input.current_price),
       currency: input.currency,
       type: input.type,
+      account_id: input.account_id ? input.account_id : null,
       is_live_priced: isLive,
       purchase_date: input.purchase_date || null,
       notes: cleanText(input.notes, 1000),
@@ -108,6 +111,8 @@ export async function createInvestment(
   if (error) return { ok: false, error: SAVE_FAILED };
 
   revalidatePath("/investments");
+  revalidatePath("/accounts");
+  revalidatePath("/dashboard");
   return { ok: true };
 }
 
@@ -132,6 +137,8 @@ export async function updateInvestment(
   if (error) return { ok: false, error: SAVE_FAILED };
 
   revalidatePath("/investments");
+  revalidatePath("/accounts");
+  revalidatePath("/dashboard");
   return { ok: true };
 }
 
@@ -150,6 +157,8 @@ export async function deleteInvestment(id: string): Promise<ActionResult> {
   if (error) return { ok: false, error: "That did not delete. Try again." };
 
   revalidatePath("/investments");
+  revalidatePath("/accounts");
+  revalidatePath("/dashboard");
   return { ok: true };
 }
 
@@ -191,6 +200,8 @@ export async function refreshPrices(): Promise<RefreshResult> {
   );
 
   revalidatePath("/investments");
+  revalidatePath("/accounts");
+  revalidatePath("/dashboard");
   return { ok: true, failed };
 }
 
@@ -221,6 +232,8 @@ export async function setManualPrice(
   if (error) return { ok: false, error: SAVE_FAILED };
 
   revalidatePath("/investments");
+  revalidatePath("/accounts");
+  revalidatePath("/dashboard");
   return { ok: true };
 }
 
@@ -254,6 +267,8 @@ export async function resumeLivePricing(id: string): Promise<ActionResult> {
   if (error) return { ok: false, error: SAVE_FAILED };
 
   revalidatePath("/investments");
+  revalidatePath("/accounts");
+  revalidatePath("/dashboard");
   return { ok: true };
 }
 
@@ -281,5 +296,7 @@ export async function reconcileInvestment(
   if (error) return { ok: false, error: SAVE_FAILED };
 
   revalidatePath("/investments");
+  revalidatePath("/accounts");
+  revalidatePath("/dashboard");
   return { ok: true };
 }

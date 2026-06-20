@@ -38,6 +38,28 @@ export type ReconciliationTarget = (typeof RECONCILIATION_TARGETS)[number];
 
 export type ReconciliationDirection = "gain" | "shortfall";
 
+// The kinds of account a savings row can be. 'savings' is the historical
+// default, so every pre-existing row keeps its meaning.
+export const ACCOUNT_TYPES = [
+  "savings",
+  "chequing",
+  "cash",
+  "investment",
+  "credit",
+  "other",
+] as const;
+export type AccountType = (typeof ACCOUNT_TYPES)[number];
+
+// Human labels for each account type, used in the form selector and on cards.
+export const ACCOUNT_TYPE_LABELS: Record<AccountType, string> = {
+  savings: "Savings",
+  chequing: "Chequing",
+  cash: "Cash",
+  investment: "Investment",
+  credit: "Credit",
+  other: "Other",
+};
+
 export const INVESTMENT_TYPES = [
   "stock",
   "etf",
@@ -65,6 +87,10 @@ export type Investment = {
   current_price: number | null;
   currency: string;
   type: InvestmentType;
+  // The account that holds this position, or null when it counts on its own.
+  // When set, the position's value mirrors into that account's balance and is
+  // excluded from the standalone investments total, so nothing double-counts.
+  account_id: string | null;
   is_live_priced: boolean;
   price_is_manual: boolean;
   purchase_date: string | null;
@@ -116,6 +142,7 @@ export type Saving = {
   id: string;
   user_id: string;
   account_name: string;
+  account_type: AccountType;
   balance: number;
   currency: string;
   goal_amount: number | null;
@@ -155,7 +182,21 @@ export type Transfer = {
 export type AccountRef = {
   id: string;
   account_name: string;
+  account_type: AccountType;
   currency: string;
+};
+
+// One line in an account's activity log: a posting, a transfer leg, or a manual
+// balance adjustment. amount is signed in the account's own currency (money in
+// positive, money out negative), so the log reads as a running ledger.
+export type AccountLogEntry = {
+  id: string;
+  kind: "income" | "expense" | "transfer_in" | "transfer_out" | "reconcile";
+  label: string;
+  amount: number;
+  currency: string;
+  date: string;
+  note: string | null;
 };
 
 export type Reconciliation = {

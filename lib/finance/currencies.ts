@@ -69,3 +69,23 @@ export function convertToBase(
   if (rate == null || !Number.isFinite(rate)) return null;
   return amount * rate;
 }
+
+// Convert between any two currencies by routing through the base: from → base →
+// to. Returns null when either leg has no rate, the same honest "leave it alone"
+// signal as convertToBase. Used to express a position's value in the currency of
+// the account that holds it.
+export function convertBetween(
+  amount: number,
+  from: string,
+  to: string,
+  base: string,
+  rateMap: Record<string, number>,
+): number | null {
+  if (from === to) return amount;
+  const inBase = convertToBase(amount, from, base, rateMap);
+  if (inBase == null) return null;
+  if (to === base) return inBase;
+  const toRate = rateMap[to];
+  if (toRate == null || !Number.isFinite(toRate) || toRate === 0) return null;
+  return inBase / toRate;
+}

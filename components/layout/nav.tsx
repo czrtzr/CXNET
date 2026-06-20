@@ -22,5 +22,5 @@ export const PRIMARY_NAV: NavItem[] = [
   { href: "/income", label: "Income", Icon: IncomeIcon },
   { href: "/expenses", label: "Expenses", Icon: ExpensesIcon },
   { href: "/investments", label: "Investments", Icon: InvestmentsIcon },
-  { href: "/savings", label: "Savings", Icon: SavingsIcon },
+  { href: "/accounts", label: "Accounts", Icon: SavingsIcon },
 ];

@@ -3,6 +3,7 @@
 import { motion } from "motion/react";
 import { CountUp } from "@/components/ui/CountUp";
 import { Amount } from "@/components/ui/Amount";
+import { formatPercent } from "@/lib/finance/format";
 import { Card } from "@/components/ui/Card";
 import { CertificateFrame } from "@/components/svg/CertificateFrame";
 import { Guilloche } from "@/components/svg/Guilloche";
@@ -34,7 +35,7 @@ type Props = {
   displayName: string;
   base: string;
   netWorth: number;
-  savingsTotal: number;
+  accountsTotal: number;
   investmentsTotal: number;
   investmentGain: number;
   monthlyIncome: number;
@@ -90,7 +91,7 @@ export function DashboardView({
   displayName,
   base,
   netWorth,
-  savingsTotal,
+  accountsTotal,
   investmentsTotal,
   investmentGain,
   monthlyIncome,
@@ -106,6 +107,12 @@ export function DashboardView({
   incomeByCategory,
 }: Props) {
   const firstName = displayName.trim().split(/\s+/)[0] || "there";
+
+  // Recurring monthly headroom and what share of income it keeps — the link
+  // between the income and expense screens, read at a glance.
+  const monthlyNet = monthlyIncome - monthlyExpense;
+  const savingsRate =
+    monthlyIncome > 0 ? (monthlyNet / monthlyIncome) * 100 : null;
 
   return (
     <PageTransition>
@@ -128,7 +135,7 @@ export function DashboardView({
               </p>
               <div className="mt-3 flex flex-wrap items-center gap-x-5 gap-y-1 text-sm text-text-muted">
                 <span>
-                  Savings <Amount value={savingsTotal} currency={base} tone="plain" quiet />
+                  Accounts <Amount value={accountsTotal} currency={base} tone="plain" quiet />
                 </span>
                 <span>
                   Investments{" "}
@@ -238,6 +245,30 @@ export function DashboardView({
                     expense={monthlyExpense}
                     currency={base}
                   />
+                </div>
+                <div className="mt-4 flex items-center justify-between border-t border-border pt-3 text-sm">
+                  <span className="text-text-muted">
+                    Net{" "}
+                    <Amount
+                      value={monthlyNet}
+                      currency={base}
+                      signed
+                      tone={monthlyNet >= 0 ? "pos" : "neg"}
+                    />
+                    <span className="text-text-faint"> / mo</span>
+                  </span>
+                  {savingsRate != null ? (
+                    <span className="text-text-muted">
+                      Saving{" "}
+                      <span
+                        className={
+                          savingsRate >= 0 ? "tabular-nums text-pos" : "tabular-nums text-neg"
+                        }
+                      >
+                        {formatPercent(savingsRate, { decimals: 0 })}
+                      </span>
+                    </span>
+                  ) : null}
                 </div>
               </Card>
             </Reveal>

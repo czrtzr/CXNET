@@ -20,6 +20,7 @@ export function PositionCard({
   rateMap,
   offline,
   adjusted,
+  accountName,
   onOpen,
 }: {
   investment: Investment;
@@ -27,6 +28,8 @@ export function PositionCard({
   rateMap: Record<string, number>;
   offline: boolean;
   adjusted: boolean;
+  // The account this position is mirrored into, when linked.
+  accountName?: string;
   onOpen: () => void;
 }) {
   const value = positionValue(investment.shares, investment.current_price);
@@ -66,6 +69,11 @@ export function PositionCard({
             {investment.ticker ? (
               <p className="mt-0.5 font-mono text-xs text-text-faint">
                 {investment.ticker}
+              </p>
+            ) : null}
+            {accountName ? (
+              <p className="mt-0.5 truncate text-xs text-brass/80">
+                In {accountName}
               </p>
             ) : null}
           </div>

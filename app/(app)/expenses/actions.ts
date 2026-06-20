@@ -39,7 +39,7 @@ export type ExpenseInput = {
 // net-worth views, not just the expense list.
 function revalidateAll() {
   revalidatePath("/expenses");
-  revalidatePath("/savings");
+  revalidatePath("/accounts");
   revalidatePath("/dashboard");
 }
 

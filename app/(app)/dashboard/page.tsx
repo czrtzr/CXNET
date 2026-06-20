@@ -41,6 +41,13 @@ function startOfTodayUtc(): string {
   return d.toISOString();
 }
 
+// Parse a date-only column ("YYYY-MM-DD") at local midnight, not UTC. The graph
+// and change views bucket in local time, so a UTC parse pushes today's entries
+// into yesterday for any viewer behind UTC — which read as a zero for today.
+function localDayMs(date: string): number {
+  return new Date(`${date}T00:00:00`).getTime();
+}
+
 export default async function DashboardPage() {
   const ctx = await getSessionContext();
   if (!ctx) redirect("/login");
@@ -95,18 +102,23 @@ export default async function DashboardPage() {
   // Anything that cannot convert to base is left out of totals and counted, the
   // same honest treatment the savings and investment screens use.
   let unconverted = 0;
-  let savingsTotal = 0;
+  let savingsStoredTotal = 0;
   for (const s of savings) {
     const v = convertToBase(Number(s.balance), s.currency, ctx.base, rateMap);
     if (v == null) {
       unconverted += 1;
       continue;
     }
-    savingsTotal += v;
+    savingsStoredTotal += v;
   }
 
+  // A position linked to an account mirrors into that account's balance, so it is
+  // counted under accounts and excluded from the standalone investments figure —
+  // never both. Allocation still reflects asset class for every position, linked
+  // or not, so the donut reads by what a holding *is*, not where it sits.
   let investmentsTotal = 0;
   let investmentCost = 0;
+  let linkedTotal = 0;
   const bucketTotals = new Map<string, number>();
   for (const inv of investments) {
     const value = convertToBase(
@@ -117,6 +129,13 @@ export default async function DashboardPage() {
     );
     if (value == null) {
       unconverted += 1;
+      continue;
+    }
+    const bucket = ALLOCATION_BUCKETS[inv.type] ?? "Other";
+    bucketTotals.set(bucket, (bucketTotals.get(bucket) ?? 0) + value);
+
+    if (inv.account_id) {
+      linkedTotal += value;
       continue;
     }
     investmentsTotal += value;
@@ -131,17 +150,18 @@ export default async function DashboardPage() {
       );
       if (cost != null) investmentCost += cost;
     }
-    const bucket = ALLOCATION_BUCKETS[inv.type] ?? "Other";
-    bucketTotals.set(bucket, (bucketTotals.get(bucket) ?? 0) + value);
   }
 
-  const netWorth = savingsTotal + investmentsTotal;
+  // Accounts hold their cash balance plus any positions mirrored into them.
+  const accountsTotal = savingsStoredTotal + linkedTotal;
+  const netWorth = accountsTotal + investmentsTotal;
   const investmentGain = investmentsTotal - investmentCost;
 
   // Allocation segments: cash first, then each investment bucket, largest last
-  // so the donut sweeps from the steadiest holding outward.
+  // so the donut sweeps from the steadiest holding outward. Cash is the pure
+  // account balances; mirrored positions show under their asset class, not cash.
   const allocation = [
-    { key: "cash", label: "Cash & savings", value: savingsTotal },
+    { key: "cash", label: "Cash & savings", value: savingsStoredTotal },
     ...Array.from(bucketTotals, ([label, value]) => ({
       key: label,
       label,
@@ -180,7 +200,7 @@ export default async function DashboardPage() {
     rows
       .map((r) => {
         const v = convertToBase(Number(r.amount), r.currency, ctx.base, rateMap);
-        return v == null ? null : { t: new Date(r.date).getTime(), v };
+        return v == null ? null : { t: localDayMs(r.date), v };
       })
       .filter((p): p is { t: number; v: number } => p != null);
   const incomeFlow = toFlow(income);
@@ -197,7 +217,7 @@ export default async function DashboardPage() {
   ) => {
     const sums = new Map<string, number>();
     for (const r of rows) {
-      if (new Date(r.date).getTime() < cutoffMs) continue;
+      if (localDayMs(r.date) < cutoffMs) continue;
       const v = convertToBase(Number(r.amount), r.currency, ctx.base, rateMap);
       if (v == null) continue;
       const key = r.category_id ?? "none";
@@ -287,7 +307,7 @@ export default async function DashboardPage() {
       amount: Number(i.amount),
       currency: i.currency,
       tone: "pos",
-      t: new Date(i.date).getTime(),
+      t: localDayMs(i.date),
     });
   for (const e of expenses)
     activity.push({
@@ -298,7 +318,7 @@ export default async function DashboardPage() {
       amount: -Number(e.amount),
       currency: e.currency,
       tone: "neg",
-      t: new Date(e.date).getTime(),
+      t: localDayMs(e.date),
     });
   for (const r of reconciliations)
     activity.push({
@@ -333,7 +353,7 @@ export default async function DashboardPage() {
       amount: Number(t.from_amount),
       currency: t.from_currency,
       tone: "muted",
-      t: new Date(t.occurred_at).getTime(),
+      t: localDayMs(t.occurred_at),
     });
   }
   activity.sort((a, b) => b.t - a.t);
@@ -343,7 +363,7 @@ export default async function DashboardPage() {
       displayName={ctx.displayName}
       base={ctx.base}
       netWorth={netWorth}
-      savingsTotal={savingsTotal}
+      accountsTotal={accountsTotal}
       investmentsTotal={investmentsTotal}
       investmentGain={investmentGain}
       monthlyIncome={monthlyIncome}

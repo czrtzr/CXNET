@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import type { AccountRef } from "@/types";
-import type { TransferInput } from "@/app/(app)/savings/actions";
+import type { TransferInput } from "@/app/(app)/accounts/actions";
 import { Modal } from "@/components/ui/Modal";
 import { Input } from "@/components/ui/Input";
 import { Textarea } from "@/components/ui/Textarea";
@@ -26,6 +26,7 @@ export function TransferDialog({
   accounts,
   rateMap,
   pending,
+  presetFrom,
   onClose,
   onConfirm,
 }: {
@@ -33,6 +34,8 @@ export function TransferDialog({
   accounts: AccountRef[];
   rateMap: Record<string, number>;
   pending: boolean;
+  // When opened from a specific account card, pre-select it as the source.
+  presetFrom?: string;
   onClose: () => void;
   onConfirm: (input: TransferInput) => void;
 }) {
@@ -43,6 +46,19 @@ export function TransferDialog({
   const [toTouched, setToTouched] = useState(false);
   const [note, setNote] = useState("");
   const [date, setDate] = useState(today());
+
+  // Seed the source from the card that launched the dialog, once per open.
+  // Adjusting state during render (the sanctioned alternative to a setState
+  // effect) keeps the preselection in lock-step with opening, with no extra
+  // render pass. `seeded` resets on close so the next open re-seeds.
+  const [seeded, setSeeded] = useState(false);
+  if (open && !seeded) {
+    setSeeded(true);
+    setFromId(presetFrom ?? "");
+    setToId("");
+  } else if (!open && seeded) {
+    setSeeded(false);
+  }
 
   const fromAccount = accounts.find((a) => a.id === fromId);
   const toAccount = accounts.find((a) => a.id === toId);

@@ -1,8 +1,12 @@
 "use client";
 
 import { useState } from "react";
-import type { Investment, InvestmentType } from "@/types";
-import { INVESTMENT_TYPES, LIVE_INVESTMENT_TYPES } from "@/types";
+import type { AccountRef, Investment, InvestmentType } from "@/types";
+import {
+  ACCOUNT_TYPE_LABELS,
+  INVESTMENT_TYPES,
+  LIVE_INVESTMENT_TYPES,
+} from "@/types";
 import { CURRENCY_OPTIONS } from "@/lib/finance/currencies";
 import { Input } from "@/components/ui/Input";
 import { Select } from "@/components/ui/Select";
@@ -29,12 +33,14 @@ function today(): string {
 export function InvestmentForm({
   initial,
   base,
+  accounts,
   pending,
   onSubmit,
   onCancel,
 }: {
   initial?: Investment;
   base: string;
+  accounts: AccountRef[];
   pending: boolean;
   onSubmit: (input: InvestmentInput) => void;
   onCancel: () => void;
@@ -50,6 +56,7 @@ export function InvestmentForm({
     initial?.current_price != null ? String(initial.current_price) : "",
   );
   const [currency, setCurrency] = useState(initial?.currency ?? base);
+  const [accountId, setAccountId] = useState(initial?.account_id ?? "");
   const [purchaseDate, setPurchaseDate] = useState(initial?.purchase_date ?? today());
   const [notes, setNotes] = useState(initial?.notes ?? "");
   const [previewSymbol, setPreviewSymbol] = useState(initial?.ticker ?? "");
@@ -73,6 +80,7 @@ export function InvestmentForm({
       current_price: currentValue === "" ? null : currentValue,
       currency,
       type,
+      account_id: accountId === "" ? null : accountId,
       purchase_date: purchaseDate,
       notes,
     });
@@ -173,6 +181,23 @@ export function InvestmentForm({
         value={purchaseDate}
         onChange={(e) => setPurchaseDate(e.target.value)}
       />
+
+      {accounts.length > 0 ? (
+        <SelectMenu
+          id="account"
+          label="Held in account"
+          value={accountId}
+          onChange={setAccountId}
+          options={[
+            { value: "", label: "Not linked", hint: "Counts on its own" },
+            ...accounts.map((a) => ({
+              value: a.id,
+              label: a.account_name,
+              hint: ACCOUNT_TYPE_LABELS[a.account_type],
+            })),
+          ]}
+        />
+      ) : null}
 
       <Textarea
         id="notes"

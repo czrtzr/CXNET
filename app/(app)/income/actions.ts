@@ -24,7 +24,7 @@ export type IncomeInput = {
 // net-worth views, not just the income list.
 function revalidateAll() {
   revalidatePath("/income");
-  revalidatePath("/savings");
+  revalidatePath("/accounts");
   revalidatePath("/dashboard");
 }
 

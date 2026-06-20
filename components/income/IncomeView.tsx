@@ -20,6 +20,7 @@ import { useToast } from "@/components/ui/Toast";
 import { PageTransition } from "@/components/layout/PageTransition";
 import { EmptyState } from "@/components/finance/EmptyState";
 import { ChangeView } from "@/components/finance/ChangeView";
+import { RecurringPanel, type RecurringItem } from "@/components/finance/RecurringPanel";
 import { IncomeForm } from "./IncomeForm";
 
 type Props = {
@@ -79,6 +80,22 @@ export function IncomeView({
     if (converted == null) unconverted += 1;
     else monthlyTotal += converted;
   }
+
+  const recurringItems: RecurringItem[] = optimistic
+    .filter((r) => r.frequency !== "one_time")
+    .map((r) => ({
+      id: r.id,
+      label: r.source,
+      cadence: FREQUENCY_BADGE[r.frequency],
+      amount: Number(r.amount),
+      currency: r.currency,
+      monthly: convertToBase(
+        monthlyEquivalent(Number(r.amount), r.frequency),
+        r.currency,
+        base,
+        rateMap,
+      ),
+    }));
 
   // Actual logged income by date, in base currency, for the change view.
   const flow = useMemo(
@@ -174,6 +191,13 @@ export function IncomeView({
       {optimistic.length > 0 ? (
         <ChangeView entries={flow} currency={base} higherIsBetter />
       ) : null}
+
+      <RecurringPanel
+        items={recurringItems}
+        base={base}
+        monthlyTotal={monthlyTotal}
+        noun="income"
+      />
 
       {optimistic.length === 0 ? (
         <EmptyState
