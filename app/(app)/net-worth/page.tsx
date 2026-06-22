@@ -4,7 +4,7 @@ import { getBaseRateMap } from "@/lib/finance/fx";
 import { convertToBase, convertBetween } from "@/lib/finance/currencies";
 import { positionValue } from "@/lib/finance/calculations";
 import { NetWorthView } from "@/components/networth/NetWorthView";
-import type { Asset, Liability, Saving, Investment } from "@/types";
+import type { Asset, Liability, Saving, Investment, DebtPayment } from "@/types";
 
 export default async function NetWorthPage() {
   const ctx = await getSessionContext();
@@ -15,23 +15,36 @@ export default async function NetWorthPage() {
     { data: liabilityData },
     { data: savingData },
     { data: investmentData },
+    { data: paymentData },
   ] = await Promise.all([
     ctx.supabase.from("assets").select("*").order("created_at", { ascending: false }),
     ctx.supabase
       .from("liabilities")
       .select("*")
       .order("created_at", { ascending: false }),
-    ctx.supabase.from("savings").select("balance, currency"),
+    ctx.supabase
+      .from("savings")
+      .select("id, account_name, balance, currency")
+      .order("account_name"),
     ctx.supabase.from("investments").select("shares, current_price, currency"),
+    ctx.supabase
+      .from("debt_payments")
+      .select("*")
+      .order("paid_on", { ascending: false })
+      .order("created_at", { ascending: false }),
   ]);
 
   const assets = (assetData ?? []) as Asset[];
   const liabilities = (liabilityData ?? []) as Liability[];
-  const savings = (savingData ?? []) as Pick<Saving, "balance" | "currency">[];
+  const savings = (savingData ?? []) as Pick<
+    Saving,
+    "id" | "account_name" | "balance" | "currency"
+  >[];
   const investments = (investmentData ?? []) as Pick<
     Investment,
     "shares" | "current_price" | "currency"
   >[];
+  const payments = (paymentData ?? []) as DebtPayment[];
 
   const rateMap = await getBaseRateMap(ctx.base, [
     ...assets.map((a) => a.currency),
@@ -77,11 +90,19 @@ export default async function NetWorthPage() {
     linkedDebt[l.asset_id] = (linkedDebt[l.asset_id] ?? 0) + inAsset;
   }
 
+  const accounts = savings.map((s) => ({
+    id: s.id,
+    name: s.account_name,
+    currency: s.currency,
+  }));
+
   return (
     <NetWorthView
       assets={assets}
       liabilities={liabilities}
       linkedDebt={linkedDebt}
+      payments={payments}
+      accounts={accounts}
       base={ctx.base}
       rateMap={rateMap}
       cashTotal={cash.total}

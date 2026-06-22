@@ -3,7 +3,7 @@
 import { useOptimistic, useState, useTransition } from "react";
 import Link from "next/link";
 import { motion } from "motion/react";
-import type { Asset, Liability } from "@/types";
+import type { Asset, Liability, DebtPayment } from "@/types";
 import {
   ASSET_TYPE_LABELS,
   LIABILITY_TYPE_LABELS,
@@ -15,8 +15,11 @@ import {
   createLiability,
   updateLiability,
   deleteLiability,
+  recordDebtPayment,
+  deleteDebtPayment,
   type AssetInput,
   type LiabilityInput,
+  type DebtPaymentInput,
 } from "@/app/(app)/net-worth/actions";
 import { convertToBase } from "@/lib/finance/currencies";
 import {
@@ -33,11 +36,17 @@ import { PageTransition } from "@/components/layout/PageTransition";
 import { AssetForm } from "./AssetForm";
 import { LiabilityForm } from "./LiabilityForm";
 import { LoanSchedule } from "./LoanSchedule";
+import { PaymentForm } from "./PaymentForm";
+import { PaymentHistory } from "./PaymentHistory";
+
+type AccountRef = { id: string; name: string; currency: string };
 
 type Props = {
   assets: Asset[];
   liabilities: Liability[];
   linkedDebt: Record<string, number>;
+  payments: DebtPayment[];
+  accounts: AccountRef[];
   base: string;
   rateMap: Record<string, number>;
   cashTotal: number;
@@ -69,6 +78,15 @@ function liabilityReduce(state: Liability[], action: LiabilityAction): Liability
   return state.filter((r) => r.id !== action.id);
 }
 
+type PaymentAction =
+  | { type: "add"; row: DebtPayment }
+  | { type: "delete"; id: string };
+
+function paymentReduce(state: DebtPayment[], action: PaymentAction): DebtPayment[] {
+  if (action.type === "add") return [action.row, ...state];
+  return state.filter((r) => r.id !== action.id);
+}
+
 function numeric(value: number | string): number {
   return Number(String(value).replace(/[\s,]/g, ""));
 }
@@ -97,6 +115,8 @@ export function NetWorthView({
   assets,
   liabilities,
   linkedDebt,
+  payments,
+  accounts,
   base,
   rateMap,
   cashTotal,
@@ -105,12 +125,22 @@ export function NetWorthView({
 }: Props) {
   const [optAssets, applyAsset] = useOptimistic(assets, assetReduce);
   const [optLiabilities, applyLiability] = useOptimistic(liabilities, liabilityReduce);
+  const [optPayments, applyPayment] = useOptimistic(payments, paymentReduce);
   const [pending, start] = useTransition();
   const [assetOpen, setAssetOpen] = useState(false);
   const [editingAsset, setEditingAsset] = useState<Asset | null>(null);
   const [liabilityOpen, setLiabilityOpen] = useState(false);
   const [editingLiability, setEditingLiability] = useState<Liability | null>(null);
+  const [payingLiability, setPayingLiability] = useState<Liability | null>(null);
   const { toast } = useToast();
+
+  const accountNames = new Map(accounts.map((a) => [a.id, a.name]));
+  const paymentsByLiability = new Map<string, DebtPayment[]>();
+  for (const p of optPayments) {
+    const list = paymentsByLiability.get(p.liability_id);
+    if (list) list.push(p);
+    else paymentsByLiability.set(p.liability_id, [p]);
+  }
 
   const assetRefs = optAssets.map((a) => ({
     id: a.id,
@@ -239,6 +269,61 @@ export function NetWorthView({
     start(async () => {
       applyLiability({ type: "delete", id: row.id });
       const res = await deleteLiability(row.id);
+      if (!res.ok) toast(res.error, "error");
+    });
+  }
+
+  function submitPayment(input: DebtPaymentInput) {
+    const debt = payingLiability;
+    setPayingLiability(null);
+    if (!debt) return;
+    const amount = numeric(input.amount);
+    const interest =
+      input.interest_amount == null || input.interest_amount === ""
+        ? 0
+        : numeric(input.interest_amount);
+    const principal =
+      input.principal_amount == null || input.principal_amount === ""
+        ? amount
+        : numeric(input.principal_amount);
+    start(async () => {
+      // The principal pays the debt down right away; cash settles on revalidate.
+      applyLiability({
+        type: "update",
+        row: { ...debt, balance: Number(debt.balance) - principal },
+      });
+      applyPayment({
+        type: "add",
+        row: {
+          id: `temp-${Date.now()}`,
+          user_id: "",
+          liability_id: debt.id,
+          account_id: input.account_id ?? null,
+          amount,
+          principal_amount: principal,
+          interest_amount: interest,
+          currency: debt.currency,
+          paid_on: input.paid_on || new Date().toISOString().slice(0, 10),
+          note: input.note ?? null,
+          created_at: new Date().toISOString(),
+        },
+      });
+      const res = await recordDebtPayment(input);
+      if (!res.ok) toast(res.error, "error");
+    });
+  }
+
+  function removePayment(row: DebtPayment) {
+    const debt = optLiabilities.find((l) => l.id === row.liability_id);
+    start(async () => {
+      applyPayment({ type: "delete", id: row.id });
+      if (debt) {
+        applyLiability({
+          type: "update",
+          row: { ...debt, balance: Number(debt.balance) + Number(row.principal_amount) },
+        });
+      }
+      const res = await deleteDebtPayment(row.id);
       if (!res.ok) toast(res.error, "error");
     });
   }
@@ -374,19 +459,39 @@ export function NetWorthView({
                 const isTemp = l.id.startsWith("temp-");
                 return (
                   <motion.div key={l.id} layout initial={{ opacity: 0, y: 6 }} animate={{ opacity: isTemp ? 0.6 : 1, y: 0 }}>
-                    <Card className="group flex items-center justify-between gap-3 px-5 py-4">
-                      <p className="truncate text-sm text-text">{l.name}</p>
-                      <div className="flex items-center gap-2">
+                    <Card className="group flex h-full flex-col px-5 py-4">
+                      <div className="flex items-center justify-between gap-3">
+                        <p className="truncate text-sm text-text">{l.name}</p>
                         <Amount value={Number(l.balance)} currency={l.currency} tone="pos" quiet code />
-                        {rowActions(
-                          () => {
-                            setEditingLiability(l);
-                            setLiabilityOpen(true);
-                          },
-                          () => removeLiability(l),
-                          isTemp,
-                        )}
                       </div>
+
+                      <PaymentHistory
+                        payments={paymentsByLiability.get(l.id) ?? []}
+                        currency={l.currency}
+                        accountNames={accountNames}
+                        canWrite={canWrite}
+                        onRemove={removePayment}
+                      />
+
+                      {canWrite && !isTemp ? (
+                        <div className="mt-3 flex items-center border-t border-border pt-2">
+                          <button
+                            type="button"
+                            onClick={() => setPayingLiability(l)}
+                            className="rounded-sm px-2 py-1 text-xs text-pos transition hover:bg-surface-hover"
+                          >
+                            Record receipt
+                          </button>
+                          {rowActions(
+                            () => {
+                              setEditingLiability(l);
+                              setLiabilityOpen(true);
+                            },
+                            () => removeLiability(l),
+                            isTemp,
+                          )}
+                        </div>
+                      ) : null}
                     </Card>
                   </motion.div>
                 );
@@ -484,8 +589,23 @@ export function NetWorthView({
                     />
                   ) : null}
 
+                  <PaymentHistory
+                    payments={paymentsByLiability.get(l.id) ?? []}
+                    currency={l.currency}
+                    accountNames={accountNames}
+                    canWrite={canWrite}
+                    onRemove={removePayment}
+                  />
+
                   {canWrite && !isTemp ? (
-                    <div className="mt-3 flex border-t border-border pt-2">
+                    <div className="mt-3 flex items-center border-t border-border pt-2">
+                      <button
+                        type="button"
+                        onClick={() => setPayingLiability(l)}
+                        className="rounded-sm px-2 py-1 text-xs text-red-bright transition hover:bg-surface-hover"
+                      >
+                        Record payment
+                      </button>
                       {rowActions(
                         () => {
                           setEditingLiability(l);
@@ -556,6 +676,26 @@ export function NetWorthView({
             setEditingLiability(null);
           }}
         />
+      </Modal>
+
+      <Modal
+        open={payingLiability !== null}
+        onClose={() => setPayingLiability(null)}
+        title={
+          payingLiability?.direction === "owed_to_me"
+            ? `Record receipt — ${payingLiability?.name}`
+            : `Record payment — ${payingLiability?.name ?? ""}`
+        }
+      >
+        {payingLiability ? (
+          <PaymentForm
+            liability={payingLiability}
+            accounts={accounts}
+            pending={pending}
+            onSubmit={submitPayment}
+            onCancel={() => setPayingLiability(null)}
+          />
+        ) : null}
       </Modal>
     </PageTransition>
   );

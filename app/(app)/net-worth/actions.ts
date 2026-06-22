@@ -23,6 +23,12 @@ function revalidateAll() {
   revalidatePath("/dashboard");
 }
 
+// A debt payment moves a cash account, so its screen has to re-read too.
+function revalidateWithAccounts() {
+  revalidateAll();
+  revalidatePath("/accounts");
+}
+
 // ---------------------------------------------------------------------------
 // Assets
 // ---------------------------------------------------------------------------
@@ -266,5 +272,114 @@ export async function deleteLiability(id: string): Promise<ActionResult> {
   if (error) return { ok: false, error: "That did not delete. Try again." };
 
   revalidateAll();
+  return { ok: true };
+}
+
+// ---------------------------------------------------------------------------
+// Debt payments
+//
+// The `debt_payment_posting` trigger does the balance moves: the principal pays
+// the debt down, the full amount moves the linked account (out for a debt I owe,
+// in for money owed to me). This action only validates and inserts the row; the
+// interest portion is recorded for reporting and is otherwise just the cost.
+// ---------------------------------------------------------------------------
+export type DebtPaymentInput = {
+  liability_id: string;
+  account_id?: string | null;
+  amount: number | string;
+  principal_amount?: number | string | null;
+  interest_amount?: number | string | null;
+  paid_on?: string | null;
+  note?: string | null;
+};
+
+export async function recordDebtPayment(
+  input: DebtPaymentInput,
+): Promise<ActionResult> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { ok: false, error: NO_SESSION };
+
+  if (!input.liability_id) return { ok: false, error: "Pick a debt." };
+
+  // Read the debt server-side: it fixes the payment currency and proves ownership.
+  const { data: liability } = await supabase
+    .from("liabilities")
+    .select("id, currency")
+    .eq("id", input.liability_id)
+    .eq("user_id", user.id)
+    .maybeSingle();
+  if (!liability) return { ok: false, error: "That debt no longer exists." };
+
+  const amount = parseAmount(input.amount);
+  if (amount == null || amount <= 0)
+    return { ok: false, error: "Enter an amount." };
+
+  // Split the payment. Defaults to all-principal; interest is clamped and the two
+  // legs are kept consistent so principal + interest always equals the payment.
+  let interest = optionalAmount(input.interest_amount) ?? 0;
+  if (interest < 0) interest = 0;
+  if (interest > amount) interest = amount;
+  let principal = optionalAmount(input.principal_amount);
+  if (principal == null) principal = amount - interest;
+  if (principal < 0) principal = 0;
+  if (principal > amount) principal = amount;
+  interest = amount - principal;
+
+  // The posting trigger moves the account by the raw payment with no FX, so the
+  // account has to hold the debt's currency or its balance would be corrupted.
+  let account_id: string | null = null;
+  if (input.account_id) {
+    const { data: account } = await supabase
+      .from("savings")
+      .select("id, currency")
+      .eq("id", input.account_id)
+      .eq("user_id", user.id)
+      .maybeSingle();
+    if (!account) return { ok: false, error: "Pick a valid account." };
+    if (account.currency !== liability.currency)
+      return { ok: false, error: "Account currency must match the debt." };
+    account_id = account.id;
+  }
+
+  if (input.paid_on && !isValidDate(input.paid_on))
+    return { ok: false, error: "Pick a valid date." };
+
+  const { error } = await supabase.from("debt_payments").insert({
+    user_id: user.id,
+    liability_id: liability.id,
+    account_id,
+    amount,
+    principal_amount: principal,
+    interest_amount: interest,
+    currency: liability.currency,
+    ...(input.paid_on ? { paid_on: input.paid_on } : {}),
+    note: cleanText(input.note, 500),
+  });
+  if (error) return { ok: false, error: SAVE_FAILED };
+
+  revalidateWithAccounts();
+  return { ok: true };
+}
+
+export async function deleteDebtPayment(id: string): Promise<ActionResult> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { ok: false, error: NO_SESSION };
+
+  // The trigger reverses both legs on delete (and no-ops if the debt is already
+  // gone), so removing the row cleanly undoes the payment.
+  const { error } = await supabase
+    .from("debt_payments")
+    .delete()
+    .eq("id", id)
+    .eq("user_id", user.id);
+  if (error) return { ok: false, error: "That did not delete. Try again." };
+
+  revalidateWithAccounts();
   return { ok: true };
 }
