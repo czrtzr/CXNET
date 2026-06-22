@@ -1,24 +1,14 @@
 "use client";
 
 import { useState } from "react";
-import type { AccountRef, Category, Expense, RecurrenceInterval } from "@/types";
-import { RECURRENCE_INTERVALS } from "@/types";
+import type { AccountRef, Category, Expense } from "@/types";
 import { CURRENCY_OPTIONS } from "@/lib/finance/currencies";
 import { Input } from "@/components/ui/Input";
-import { Select } from "@/components/ui/Select";
 import { SelectMenu } from "@/components/ui/SelectMenu";
 import { Textarea } from "@/components/ui/Textarea";
 import { Button } from "@/components/ui/Button";
 import { CategoryField } from "./CategoryField";
 import type { ExpenseInput } from "@/app/(app)/expenses/actions";
-
-const RECURRENCE_LABELS: Record<RecurrenceInterval, string> = {
-  weekly: "Weekly",
-  biweekly: "Every two weeks",
-  monthly: "Monthly",
-  quarterly: "Quarterly",
-  annual: "Annual",
-};
 
 function today(): string {
   return new Date().toISOString().slice(0, 10);
@@ -61,10 +51,6 @@ export function ExpenseForm({
   );
   const [date, setDate] = useState(initial?.date ?? today());
   const [notes, setNotes] = useState(initial?.notes ?? "");
-  const [isRecurring, setIsRecurring] = useState(initial?.is_recurring ?? false);
-  const [recurrence, setRecurrence] = useState<RecurrenceInterval>(
-    initial?.recurrence ?? "monthly",
-  );
   const [touched, setTouched] = useState(false);
 
   const descriptionValid = description.trim() !== "";
@@ -85,8 +71,10 @@ export function ExpenseForm({
       account_id: accountId,
       date,
       notes,
-      is_recurring: isRecurring,
-      recurrence: isRecurring ? recurrence : null,
+      // Recurrence now lives in the rules engine; a manual entry is a one-time
+      // record. Editing a legacy recurring entry keeps the cadence it had.
+      is_recurring: initial?.is_recurring ?? false,
+      recurrence: initial?.recurrence ?? null,
     });
   }
 
@@ -151,31 +139,6 @@ export function ExpenseForm({
         value={date}
         onChange={(e) => setDate(e.target.value)}
       />
-
-      <div className="flex flex-col gap-3 rounded-sm border border-border bg-surface px-3.5 py-3">
-        <label className="flex items-center justify-between text-sm text-text">
-          Recurring
-          <input
-            type="checkbox"
-            checked={isRecurring}
-            onChange={(e) => setIsRecurring(e.target.checked)}
-            className="h-4 w-4 accent-[var(--red)]"
-          />
-        </label>
-        {isRecurring ? (
-          <Select
-            id="recurrence"
-            value={recurrence}
-            onChange={(e) => setRecurrence(e.target.value as RecurrenceInterval)}
-          >
-            {RECURRENCE_INTERVALS.map((r) => (
-              <option key={r} value={r}>
-                {RECURRENCE_LABELS[r]}
-              </option>
-            ))}
-          </Select>
-        ) : null}
-      </div>
 
       <Textarea
         id="notes"

@@ -120,15 +120,36 @@ export type Bucket = {
   expense: number;
 };
 
-// Net-worth trend filtered to a range. The oldest point in the window is kept so
-// the line still reaches the left edge; "All" returns everything.
-export function windowPoints(points: TrendPoint[], range: Range): TrendPoint[] {
-  if (range === "ALL" || points.length === 0) return points;
-  const cutoff = rangeStart(range, points[0].t);
-  const windowed = points.filter((p) => p.t >= cutoff);
-  // If the window cut every point but one boundary, fall back to the last two so
-  // the chart still draws a segment rather than the empty state.
-  return windowed.length >= 2 ? windowed : points.slice(-2);
+// Net-worth trend as one point per calendar day across the window, carrying the
+// last known balance forward over days with no snapshot. Net worth is a running
+// balance, so an un-visited day holds the previous reading rather than vanishing
+// — which keeps the x-axis true to time (a week gap reads as a week, not one
+// step) and the line continuous. Snapshots are assumed at most one per day.
+export function fillDailyTrend(points: TrendPoint[], range: Range): TrendPoint[] {
+  if (points.length === 0) return points;
+  const sorted = [...points].sort((a, b) => a.t - b.t);
+  const cutoff = range === "ALL" ? sorted[0].t : rangeStart(range, sorted[0].t);
+  // Start no earlier than the first reading: there is nothing to carry before it.
+  const start = dayStart(new Date(Math.max(cutoff, sorted[0].t)));
+  const today = dayStart(new Date());
+  if (start.getTime() > today.getTime()) return sorted.slice(-2);
+
+  const dayOf = (t: number) => dayStart(new Date(t)).getTime();
+  const out: TrendPoint[] = [];
+  const d = new Date(start);
+  let cursor = 0;
+  let lastV = sorted[0].v;
+  // Guard against an unbounded grid; ~4 years of daily points is plenty.
+  for (let guard = 0; d.getTime() <= today.getTime() && guard < 1500; guard++) {
+    const dms = d.getTime();
+    while (cursor < sorted.length && dayOf(sorted[cursor].t) <= dms) {
+      lastV = sorted[cursor].v;
+      cursor++;
+    }
+    out.push({ t: dms, v: lastV });
+    d.setDate(d.getDate() + 1);
+  }
+  return out;
 }
 
 // Bucket actual income and expense entries into the empty grid of the window, in

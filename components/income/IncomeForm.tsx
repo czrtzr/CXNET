@@ -1,24 +1,14 @@
 "use client";
 
 import { useState } from "react";
-import type { AccountRef, Category, Income, IncomeFrequency } from "@/types";
-import { INCOME_FREQUENCIES } from "@/types";
+import type { AccountRef, Category, Income } from "@/types";
 import { CURRENCY_OPTIONS } from "@/lib/finance/currencies";
 import { Input } from "@/components/ui/Input";
-import { Select } from "@/components/ui/Select";
 import { SelectMenu } from "@/components/ui/SelectMenu";
 import { Textarea } from "@/components/ui/Textarea";
 import { Button } from "@/components/ui/Button";
 import { CategoryField } from "@/components/expenses/CategoryField";
 import type { IncomeInput } from "@/app/(app)/income/actions";
-
-const FREQUENCY_LABELS: Record<IncomeFrequency, string> = {
-  monthly: "Monthly",
-  weekly: "Weekly",
-  biweekly: "Every two weeks",
-  annual: "Annual",
-  one_time: "One time",
-};
 
 function today(): string {
   return new Date().toISOString().slice(0, 10);
@@ -50,9 +40,6 @@ export function IncomeForm({
     initial ? String(initial.amount) : "",
   );
   const [currency, setCurrency] = useState(initial?.currency ?? base);
-  const [frequency, setFrequency] = useState<IncomeFrequency>(
-    initial?.frequency ?? "one_time",
-  );
   const [categoryId, setCategoryId] = useState<string | null>(
     initial?.category_id ?? null,
   );
@@ -75,7 +62,9 @@ export function IncomeForm({
       source,
       amount,
       currency,
-      frequency,
+      // Recurrence now lives in the rules engine; a manual entry is a one-time
+      // record. Editing a legacy recurring entry keeps whatever cadence it had.
+      frequency: initial?.frequency ?? "one_time",
       category_id: categoryId,
       account_id: accountId,
       date,
@@ -113,27 +102,13 @@ export function IncomeForm({
         />
       </div>
 
-      <div className="grid grid-cols-2 gap-3">
-        <Select
-          id="frequency"
-          label="Frequency"
-          value={frequency}
-          onChange={(e) => setFrequency(e.target.value as IncomeFrequency)}
-        >
-          {INCOME_FREQUENCIES.map((f) => (
-            <option key={f} value={f}>
-              {FREQUENCY_LABELS[f]}
-            </option>
-          ))}
-        </Select>
-        <Input
-          id="date"
-          label="Date"
-          type="date"
-          value={date}
-          onChange={(e) => setDate(e.target.value)}
-        />
-      </div>
+      <Input
+        id="date"
+        label="Date"
+        type="date"
+        value={date}
+        onChange={(e) => setDate(e.target.value)}
+      />
 
       <CategoryField
         value={categoryId}

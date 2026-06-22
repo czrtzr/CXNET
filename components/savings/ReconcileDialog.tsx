@@ -15,8 +15,9 @@ function numeric(value: string): number {
 }
 
 // Set actual balance. The difference against the tracked balance previews live
-// before anything saves, then the wax seal confirms it. The booked adjustment,
-// not an overwrite, is what moves the account.
+// before anything saves, then the wax seal confirms it. The gap posts as a real
+// income or expense against the account, not a silent overwrite, so the change
+// shows up in cashflow and the account log like any other movement.
 export function ReconcileDialog({
   saving,
   open,
@@ -39,7 +40,7 @@ export function ReconcileDialog({
   const entered = actual.trim() === "" ? null : numeric(actual);
   const valid = entered != null && !Number.isNaN(entered);
   const diff = valid ? entered - tracked : 0;
-  const direction = diff > 0 ? "gain" : "shortfall";
+  const isGain = diff > 0;
 
   function reset() {
     setActual("");
@@ -86,13 +87,13 @@ export function ReconcileDialog({
 
         {valid && diff !== 0 ? (
           <p className="text-sm text-text-muted">
-            Books a{" "}
+            Posts a{" "}
             <Amount
               value={Math.abs(diff)}
               currency={saving.currency}
-              tone={direction === "gain" ? "pos" : "neg"}
+              tone={isGain ? "pos" : "neg"}
             />{" "}
-            {direction}.
+            {isGain ? "income" : "expense"} to match.
           </p>
         ) : valid && diff === 0 ? (
           <p className="text-sm text-text-faint">
@@ -118,7 +119,7 @@ export function ReconcileDialog({
             disabled={!valid || diff === 0 || pending}
             aria-label={
               valid && diff !== 0
-                ? `Confirm, books ${formatCurrency(Math.abs(diff), saving.currency)} ${direction}`
+                ? `Confirm, posts ${formatCurrency(Math.abs(diff), saving.currency)} ${isGain ? "income" : "expense"}`
                 : "Confirm"
             }
             className="flex items-center gap-2 rounded-sm bg-red px-3 py-2 text-sm text-text transition hover:bg-red-bright disabled:cursor-not-allowed disabled:opacity-50"

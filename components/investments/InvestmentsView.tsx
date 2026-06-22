@@ -13,6 +13,7 @@ import {
 } from "@/app/(app)/investments/actions";
 import { positionValue } from "@/lib/finance/calculations";
 import { convertToBase } from "@/lib/finance/currencies";
+import { Amount } from "@/components/ui/Amount";
 import { CountUp } from "@/components/ui/CountUp";
 import { Button } from "@/components/ui/Button";
 import { Modal } from "@/components/ui/Modal";
@@ -71,7 +72,12 @@ export function InvestmentsView({
   const adjusted = new Set(adjustedIds);
   const accountNameById = new Map(accounts.map((a) => [a.id, a.account_name]));
 
+  // A position linked to an account mirrors into that account's balance, so it is
+  // counted under Accounts and left out of the standalone portfolio figure here —
+  // never both. Matches the dashboard's decomposition exactly.
   let total = 0;
+  let linkedTotal = 0;
+  let linkedCount = 0;
   let unconverted = 0;
   for (const r of optimistic) {
     const v = convertToBase(
@@ -80,8 +86,16 @@ export function InvestmentsView({
       base,
       rateMap,
     );
-    if (v == null) unconverted += 1;
-    else total += v;
+    if (v == null) {
+      unconverted += 1;
+      continue;
+    }
+    if (r.account_id) {
+      linkedTotal += v;
+      linkedCount += 1;
+      continue;
+    }
+    total += v;
   }
 
   const detail = detailId
@@ -171,9 +185,18 @@ export function InvestmentsView({
           <p className="mt-3 font-serif text-4xl tracking-tight text-text">
             <CountUp value={total} currency={base} quiet />
           </p>
-          <p className="mt-1 text-xs text-text-muted">
-            Portfolio value
-            {unconverted > 0 ? `, plus ${unconverted} in other currencies` : ""}
+          <p className="mt-1 flex flex-wrap items-center gap-x-1.5 text-xs text-text-muted">
+            <span>
+              Portfolio value
+              {unconverted > 0 ? `, plus ${unconverted} in other currencies` : ""}
+            </span>
+            {linkedCount > 0 ? (
+              <span className="text-text-faint">
+                ·{" "}
+                <Amount value={linkedTotal} currency={base} tone="muted" quiet />{" "}
+                mirrored into accounts
+              </span>
+            ) : null}
           </p>
         </div>
         <div className="flex items-center gap-2">

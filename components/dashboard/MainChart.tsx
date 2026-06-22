@@ -5,7 +5,7 @@ import { NetWorthTrend } from "./NetWorthTrend";
 import { CashflowChart } from "./CashflowChart";
 import {
   RANGES,
-  windowPoints,
+  fillDailyTrend,
   type CashEntry,
   type Range,
   type TrendPoint,
@@ -36,7 +36,7 @@ export function MainChart({
   const [mode, setMode] = useState<Mode>("networth");
   const [range, setRange] = useState<Range>("6M");
 
-  const windowed = useMemo(() => windowPoints(trend, range), [trend, range]);
+  const windowed = useMemo(() => fillDailyTrend(trend, range), [trend, range]);
 
   return (
     <div>

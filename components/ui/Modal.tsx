@@ -30,9 +30,21 @@ const SIZES: Record<NonNullable<ModalProps["size"]>, string> = {
   xl: "max-w-3xl",
 };
 
+// Every element inside the panel that can hold keyboard focus, in DOM order.
+// Queried fresh each Tab so a panel whose contents change (a revealed field, a
+// toggled section) always traps against its current focusables.
+const FOCUSABLE =
+  'a[href], button:not([disabled]), textarea:not([disabled]), input:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])';
+
+function focusableWithin(root: HTMLElement): HTMLElement[] {
+  return Array.from(root.querySelectorAll<HTMLElement>(FOCUSABLE)).filter(
+    (el) => el.offsetParent !== null || el === document.activeElement,
+  );
+}
+
 // Centered dialog over a blurred scrim. Closes on Escape or backdrop click,
-// locks body scroll while open, and moves focus into the panel. A fuller focus
-// trap is part of the Phase 7 accessibility pass.
+// locks body scroll while open, moves focus into the panel, traps Tab within it,
+// and returns focus to whatever was focused before it opened.
 export function Modal({ open, onClose, title, size = "md", children }: ModalProps) {
   const reduce = useReducedMotion();
   const panelRef = useRef<HTMLDivElement>(null);
@@ -48,16 +60,55 @@ export function Modal({ open, onClose, title, size = "md", children }: ModalProp
 
   useEffect(() => {
     if (!open) return;
+    const panel = panelRef.current;
+    // The element to hand focus back to once the dialog closes.
+    const restoreTo = document.activeElement as HTMLElement | null;
+
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onCloseRef.current();
+      if (e.key === "Escape") {
+        onCloseRef.current();
+        return;
+      }
+      if (e.key !== "Tab" || !panel) return;
+      const focusables = focusableWithin(panel);
+      // Nothing tabbable: keep focus pinned to the panel itself.
+      if (focusables.length === 0) {
+        e.preventDefault();
+        panel.focus();
+        return;
+      }
+      const first = focusables[0];
+      const last = focusables[focusables.length - 1];
+      const active = document.activeElement;
+      if (e.shiftKey) {
+        if (active === first || !panel.contains(active)) {
+          e.preventDefault();
+          last.focus();
+        }
+      } else if (active === last || !panel.contains(active)) {
+        e.preventDefault();
+        first.focus();
+      }
     };
+
     document.addEventListener("keydown", onKey);
     const prevOverflow = document.body.style.overflow;
     document.body.style.overflow = "hidden";
-    panelRef.current?.focus();
+
+    // Move focus in, but never steal it from an element that already claimed it
+    // (an autoFocus input inside the panel mounts focused — leave it there).
+    if (panel && !panel.contains(document.activeElement)) {
+      (focusableWithin(panel)[0] ?? panel).focus();
+    }
+
     return () => {
       document.removeEventListener("keydown", onKey);
       document.body.style.overflow = prevOverflow;
+      // Restore focus only if it is still inside the dialog, so we never wrench
+      // it away from wherever the user has since moved.
+      if (restoreTo && panel?.contains(document.activeElement)) {
+        restoreTo.focus();
+      }
     };
   }, [open]);
 

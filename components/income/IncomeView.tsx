@@ -236,7 +236,9 @@ export function IncomeView({
                   <div className="min-w-0">
                     <div className="flex items-center gap-2.5">
                       <p className="truncate text-sm text-text">{row.source}</p>
-                      <Badge>{FREQUENCY_BADGE[row.frequency]}</Badge>
+                      {row.frequency !== "one_time" ? (
+                        <Badge>{FREQUENCY_BADGE[row.frequency]}</Badge>
+                      ) : null}
                     </div>
                     <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-text-faint">
                       <span>{row.date}</span>
