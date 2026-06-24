@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { ParticleField } from "@/components/auth/ParticleField";
 import { LoginPanel } from "@/components/auth/LoginPanel";
 import { Grain } from "@/components/svg/Grain";
@@ -22,6 +23,18 @@ export default async function LoginPage({
       <ParticleField className="absolute inset-0 h-full w-full" />
       <Grain />
       <LoginPanel error={messageFor(error)} />
+
+      <footer className="absolute inset-x-0 bottom-6 z-10 flex justify-center gap-5 text-[0.7rem] uppercase tracking-[0.14em] text-text-faint">
+        <Link href="/legal/terms" className="transition hover:text-text-muted">
+          Terms
+        </Link>
+        <Link href="/legal/privacy" className="transition hover:text-text-muted">
+          Privacy
+        </Link>
+        <Link href="/legal/data" className="transition hover:text-text-muted">
+          Data &amp; Security
+        </Link>
+      </footer>
     </main>
   );
 }

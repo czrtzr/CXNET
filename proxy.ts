@@ -15,7 +15,7 @@ import {
 // database is the real backstop, never this.
 
 // Paths that never require a session.
-const PUBLIC_PATHS = ["/login", "/auth", "/forgot-password"];
+const PUBLIC_PATHS = ["/login", "/auth", "/forgot-password", "/legal"];
 
 function isPublicPath(pathname: string): boolean {
   if (pathname === "/") return true;

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import Link from "next/link";
 import type { AccountRef } from "@/types";
 import { CURRENCIES, CURRENCY_OPTIONS } from "@/lib/finance/currencies";
 import {
@@ -178,6 +179,31 @@ export function SettingsView({
             </div>
           </>
         )}
+      </Card>
+
+      <Card className="mt-4 max-w-xl px-5 py-5">
+        <div className="flex flex-col gap-1">
+          <p className="text-sm text-text">Legal</p>
+          <p className="text-xs text-text-muted">
+            The terms you agreed to and how your information is handled.
+          </p>
+        </div>
+
+        <div className="mt-4 flex flex-wrap gap-x-6 gap-y-2">
+          {[
+            { href: "/legal/terms", label: "Terms of Service" },
+            { href: "/legal/privacy", label: "Privacy Policy" },
+            { href: "/legal/data", label: "Data & Security" },
+          ].map((doc) => (
+            <Link
+              key={doc.href}
+              href={doc.href}
+              className="text-xs uppercase tracking-[0.16em] text-text-muted transition hover:text-text"
+            >
+              {doc.label}
+            </Link>
+          ))}
+        </div>
       </Card>
     </PageTransition>
   );
