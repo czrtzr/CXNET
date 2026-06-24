@@ -10,7 +10,7 @@ import {
   type Range,
   type TrendPoint,
 } from "@/lib/finance/timeframe";
-import { cn } from "@/lib/utils/cn";
+import { SegmentedControl } from "@/components/ui/SegmentedControl";
 
 type Mode = "networth" | "cashflow";
 
@@ -41,42 +41,20 @@ export function MainChart({
   return (
     <div>
       <div className="mb-5 flex flex-wrap items-center justify-between gap-x-4 gap-y-3">
-        <div className="inline-flex overflow-hidden rounded-sm border border-border">
-          {MODES.map((m) => (
-            <button
-              key={m.key}
-              type="button"
-              onClick={() => setMode(m.key)}
-              className={cn(
-                "px-3 py-1.5 text-xs transition",
-                mode === m.key
-                  ? "bg-surface-raised text-text"
-                  : "text-text-muted hover:text-text",
-              )}
-            >
-              {m.label}
-            </button>
-          ))}
-        </div>
-
-        <div className="flex flex-wrap gap-1">
-          {RANGES.map((r) => (
-            <button
-              key={r.key}
-              type="button"
-              onClick={() => setRange(r.key)}
-              aria-pressed={range === r.key}
-              className={cn(
-                "rounded-sm border px-2 py-1 text-xs tabular-nums transition",
-                range === r.key
-                  ? "border-border bg-surface-raised text-text"
-                  : "border-transparent text-text-muted hover:text-text",
-              )}
-            >
-              {r.label}
-            </button>
-          ))}
-        </div>
+        <SegmentedControl
+          ariaLabel="Chart metric"
+          value={mode}
+          onChange={setMode}
+          options={MODES}
+        />
+        <SegmentedControl
+          ariaLabel="Timeframe"
+          variant="pills"
+          size="sm"
+          value={range}
+          onChange={setRange}
+          options={RANGES.map((r) => ({ key: r.key, label: r.label }))}
+        />
       </div>
 
       {mode === "networth" ? (

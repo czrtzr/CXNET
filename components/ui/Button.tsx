@@ -35,7 +35,8 @@ export function Button({
       type={type}
       className={cn(
         "inline-flex items-center justify-center gap-2 rounded-sm font-medium tracking-wide transition",
-        "disabled:cursor-not-allowed disabled:opacity-60",
+        // A small, universal press feedback so every button feels connected.
+        "active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-60 disabled:active:scale-100",
         VARIANTS[variant],
         SIZES[size],
         className,

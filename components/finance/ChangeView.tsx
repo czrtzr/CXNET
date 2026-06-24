@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 import { Amount } from "@/components/ui/Amount";
 import { Card } from "@/components/ui/Card";
+import { SegmentedControl } from "@/components/ui/SegmentedControl";
 import { formatPercent } from "@/lib/finance/format";
 import { dayStart, weekStart, monthStart, type CashEntry } from "@/lib/finance/timeframe";
 import { cn } from "@/lib/utils/cn";
@@ -74,23 +75,13 @@ export function ChangeView({
         <p className="text-xs uppercase tracking-[0.18em] text-text-faint">
           {meta.now}
         </p>
-        <div className="inline-flex overflow-hidden rounded-sm border border-border">
-          {PERIODS.map((p) => (
-            <button
-              key={p.key}
-              type="button"
-              onClick={() => setGran(p.key)}
-              className={cn(
-                "px-2.5 py-1 text-xs transition",
-                gran === p.key
-                  ? "bg-surface-raised text-text"
-                  : "text-text-muted hover:text-text",
-              )}
-            >
-              {p.toggle}
-            </button>
-          ))}
-        </div>
+        <SegmentedControl
+          ariaLabel="Change period"
+          size="sm"
+          value={gran}
+          onChange={setGran}
+          options={PERIODS.map((p) => ({ key: p.key, label: p.toggle }))}
+        />
       </div>
 
       <div className="mt-3 flex flex-wrap items-end justify-between gap-3">

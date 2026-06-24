@@ -57,10 +57,9 @@ export function PositionCard({
       layout
       initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
-      whileHover={{ y: -2 }}
       className="text-left"
     >
-      <Card className="h-full px-5 py-4 transition hover:border-border-strong">
+      <Card interactive className="h-full px-5 py-4">
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
             <p className="truncate text-sm text-text">

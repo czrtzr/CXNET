@@ -389,7 +389,7 @@ export function NetWorthView({
           {/* Cross-screen summary rows */}
           {cashTotal !== 0 ? (
             <Link href="/accounts">
-              <Card className="flex h-full items-center justify-between px-5 py-4 transition hover:border-border-strong">
+              <Card interactive className="flex h-full items-center justify-between px-5 py-4">
                 <div>
                   <p className="text-sm text-text">Cash & accounts</p>
                   <p className="mt-0.5 text-xs text-text-faint">From Accounts →</p>
@@ -400,7 +400,7 @@ export function NetWorthView({
           ) : null}
           {investmentsTotal !== 0 ? (
             <Link href="/investments">
-              <Card className="flex h-full items-center justify-between px-5 py-4 transition hover:border-border-strong">
+              <Card interactive className="flex h-full items-center justify-between px-5 py-4">
                 <div>
                   <p className="text-sm text-text">Investments</p>
                   <p className="mt-0.5 text-xs text-text-faint">From Investments →</p>
