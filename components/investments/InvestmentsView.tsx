@@ -200,7 +200,7 @@ export function InvestmentsView({
           </p>
         </div>
         <div className="flex items-center gap-2">
-          {hasLive ? (
+          {canWrite && hasLive ? (
             <Button variant="outline" onClick={refresh} disabled={refreshing}>
               <motion.span
                 animate={refreshing ? { rotate: 360 } : { rotate: 0 }}
