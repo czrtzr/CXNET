@@ -6,15 +6,6 @@
 export const USER_ROLES = ["super_admin", "user", "guest"] as const;
 export type UserRole = (typeof USER_ROLES)[number];
 
-export const INCOME_FREQUENCIES = [
-  "monthly",
-  "weekly",
-  "biweekly",
-  "annual",
-  "one_time",
-] as const;
-export type IncomeFrequency = (typeof INCOME_FREQUENCIES)[number];
-
 export const RECURRENCE_INTERVALS = [
   "weekly",
   "biweekly",
@@ -113,7 +104,6 @@ export type Income = {
   source: string;
   amount: number;
   currency: string;
-  frequency: IncomeFrequency;
   category_id: string | null;
   account_id: string | null;
   posted_amount: number | null;
@@ -133,8 +123,6 @@ export type Expense = {
   posted_amount: number | null;
   date: string;
   notes: string | null;
-  is_recurring: boolean;
-  recurrence: RecurrenceInterval | null;
   created_at: string;
 };
 
@@ -310,6 +298,9 @@ export type DebtPayment = {
   amount: number;
   principal_amount: number;
   interest_amount: number;
+  // The figure moved in the account's currency when it differs from the debt's;
+  // null when the account matches the debt (the amount itself is then used).
+  account_amount: number | null;
   currency: string;
   paid_on: string;
   note: string | null;

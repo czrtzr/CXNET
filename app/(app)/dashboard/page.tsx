@@ -5,8 +5,6 @@ import { convertToBase } from "@/lib/finance/currencies";
 import {
   positionValue,
   costBasis,
-  monthlyEquivalent,
-  expenseMonthlyEquivalent,
   recurrenceMonthly,
 } from "@/lib/finance/calculations";
 import { generateDueRecurring } from "@/lib/finance/recurring";
@@ -219,31 +217,11 @@ export default async function DashboardPage() {
     .filter((seg) => seg.value > 0)
     .sort((a, b) => b.value - a.value);
 
-  // Recurring monthly cashflow, both sides normalized to a monthly figure.
-  // Active recurring rules are the primary source; legacy per-entry recurring
-  // amounts still count, and rule-generated entries are one-time so they add
-  // nothing here (no double count).
+  // Recurring monthly cashflow, both sides normalized to a monthly figure from
+  // the active recurring rules. Rule-generated entries are dated one-time
+  // records, so the income/expense lists never enter this figure.
   let monthlyIncome = 0;
-  for (const i of income) {
-    const v = convertToBase(
-      monthlyEquivalent(Number(i.amount), i.frequency),
-      i.currency,
-      ctx.base,
-      rateMap,
-    );
-    if (v != null) monthlyIncome += v;
-  }
   let monthlyExpense = 0;
-  for (const e of expenses) {
-    if (!e.is_recurring) continue;
-    const v = convertToBase(
-      expenseMonthlyEquivalent(Number(e.amount), e.recurrence),
-      e.currency,
-      ctx.base,
-      rateMap,
-    );
-    if (v != null) monthlyExpense += v;
-  }
   for (const rule of rules) {
     const v = convertToBase(
       recurrenceMonthly(Number(rule.amount), rule.cadence),

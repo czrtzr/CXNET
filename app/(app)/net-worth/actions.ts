@@ -3,7 +3,8 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { parseAmount, cleanText, isValidDate } from "@/lib/finance/input";
-import { isCurrencyCode } from "@/lib/finance/currencies";
+import { isCurrencyCode, convertToBase } from "@/lib/finance/currencies";
+import { getBaseRateMap } from "@/lib/finance/fx";
 import {
   ASSET_TYPES,
   LIABILITY_TYPES,
@@ -289,6 +290,9 @@ export type DebtPaymentInput = {
   amount: number | string;
   principal_amount?: number | string | null;
   interest_amount?: number | string | null;
+  // The figure moved in the account's own currency, when it differs from the
+  // debt's. Optional: omitted means convert the payment amount at today's rate.
+  account_amount?: number | string | null;
   paid_on?: string | null;
   note?: string | null;
 };
@@ -328,9 +332,12 @@ export async function recordDebtPayment(
   if (principal > amount) principal = amount;
   interest = amount - principal;
 
-  // The posting trigger moves the account by the raw payment with no FX, so the
-  // account has to hold the debt's currency or its balance would be corrupted.
+  // The posting trigger moves the account by account_amount, in the account's
+  // own currency. When the account holds the debt's currency this stays null and
+  // the trigger falls back to the payment amount. Cross-currency, we record the
+  // account-side figure honestly: the caller's value if given, else today's rate.
   let account_id: string | null = null;
+  let account_amount: number | null = null;
   if (input.account_id) {
     const { data: account } = await supabase
       .from("savings")
@@ -339,9 +346,27 @@ export async function recordDebtPayment(
       .eq("user_id", user.id)
       .maybeSingle();
     if (!account) return { ok: false, error: "Pick a valid account." };
-    if (account.currency !== liability.currency)
-      return { ok: false, error: "Account currency must match the debt." };
     account_id = account.id;
+
+    if (account.currency !== liability.currency) {
+      const override = parseAmount(input.account_amount);
+      if (override != null && override > 0) {
+        account_amount = override;
+      } else {
+        const rateMap = await getBaseRateMap(account.currency, [
+          liability.currency,
+        ]);
+        const converted = convertToBase(
+          amount,
+          liability.currency,
+          account.currency,
+          rateMap,
+        );
+        // No rate available: fall back to the raw amount rather than block the
+        // payment, the same best-effort stance the rest of the FX layer takes.
+        account_amount = converted ?? amount;
+      }
+    }
   }
 
   if (input.paid_on && !isValidDate(input.paid_on))
@@ -354,6 +379,7 @@ export async function recordDebtPayment(
     amount,
     principal_amount: principal,
     interest_amount: interest,
+    account_amount,
     currency: liability.currency,
     ...(input.paid_on ? { paid_on: input.paid_on } : {}),
     note: cleanText(input.note, 500),

@@ -71,10 +71,6 @@ export function ExpenseForm({
       account_id: accountId,
       date,
       notes,
-      // Recurrence now lives in the rules engine; a manual entry is a one-time
-      // record. Editing a legacy recurring entry keeps the cadence it had.
-      is_recurring: initial?.is_recurring ?? false,
-      recurrence: initial?.recurrence ?? null,
     });
   }
 

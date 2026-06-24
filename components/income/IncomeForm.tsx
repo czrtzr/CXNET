@@ -62,9 +62,6 @@ export function IncomeForm({
       source,
       amount,
       currency,
-      // Recurrence now lives in the rules engine; a manual entry is a one-time
-      // record. Editing a legacy recurring entry keeps whatever cadence it had.
-      frequency: initial?.frequency ?? "one_time",
       category_id: categoryId,
       account_id: accountId,
       date,

@@ -302,6 +302,10 @@ export function NetWorthView({
           amount,
           principal_amount: principal,
           interest_amount: interest,
+          account_amount:
+            input.account_amount == null || input.account_amount === ""
+              ? null
+              : numeric(input.account_amount),
           currency: debt.currency,
           paid_on: input.paid_on || new Date().toISOString().slice(0, 10),
           note: input.note ?? null,
@@ -691,6 +695,8 @@ export function NetWorthView({
           <PaymentForm
             liability={payingLiability}
             accounts={accounts}
+            base={base}
+            rateMap={rateMap}
             pending={pending}
             onSubmit={submitPayment}
             onCancel={() => setPayingLiability(null)}

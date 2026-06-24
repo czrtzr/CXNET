@@ -12,7 +12,6 @@ import {
 import { convertToBase } from "@/lib/finance/currencies";
 import { RecurringRulesPanel } from "@/components/finance/RecurringRulesPanel";
 import { Amount } from "@/components/ui/Amount";
-import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { Modal } from "@/components/ui/Modal";
@@ -124,8 +123,6 @@ export function ExpensesView({
             account_id: input.account_id ?? null,
             date: input.date,
             notes: input.notes ?? null,
-            is_recurring: input.is_recurring,
-            recurrence: input.recurrence,
           },
         });
         const res = await updateExpense(target.id, input);
@@ -145,8 +142,6 @@ export function ExpensesView({
             posted_amount: null,
             date: input.date,
             notes: input.notes ?? null,
-            is_recurring: input.is_recurring,
-            recurrence: input.recurrence,
           },
         });
         const res = await createExpense(input);
@@ -253,9 +248,6 @@ export function ExpensesView({
                             <p className="truncate text-sm text-text">
                               {row.description}
                             </p>
-                            {row.is_recurring ? (
-                              <Badge tone="neutral">Recurring</Badge>
-                            ) : null}
                           </div>
                           <p className="mt-1 text-xs text-text-faint">
                             {category ? `${category.name} · ` : ""}

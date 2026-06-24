@@ -185,7 +185,6 @@ export async function reconcileSaving(
           source: "Balance adjustment",
           amount: delta,
           currency: account.currency,
-          frequency: "one_time",
           account_id: id,
           posted_amount: delta,
           date: today,
@@ -199,7 +198,6 @@ export async function reconcileSaving(
           account_id: id,
           posted_amount: delta,
           date: today,
-          is_recurring: false,
           notes: cleanNote,
         });
   if (error) return { ok: false, error: SAVE_FAILED };

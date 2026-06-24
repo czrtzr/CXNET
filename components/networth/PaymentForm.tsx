@@ -6,6 +6,7 @@ import {
   monthlyPayment,
   splitNextPayment,
 } from "@/lib/finance/amortization";
+import { convertBetween } from "@/lib/finance/currencies";
 import { Input } from "@/components/ui/Input";
 import { SelectMenu } from "@/components/ui/SelectMenu";
 import { Textarea } from "@/components/ui/Textarea";
@@ -48,12 +49,16 @@ function suggestedPayment(l: Liability): string {
 export function PaymentForm({
   liability,
   accounts,
+  base,
+  rateMap,
   pending,
   onSubmit,
   onCancel,
 }: {
   liability: Liability;
   accounts: AccountRef[];
+  base: string;
+  rateMap: Record<string, number>;
   pending: boolean;
   onSubmit: (input: DebtPaymentInput) => void;
   onCancel: () => void;
@@ -73,6 +78,8 @@ export function PaymentForm({
   });
   const [interestEdited, setInterestEdited] = useState(false);
   const [accountId, setAccountId] = useState("");
+  const [accountAmount, setAccountAmount] = useState("");
+  const [accountAmountEdited, setAccountAmountEdited] = useState(false);
   const [paidOn, setPaidOn] = useState(todayLocal());
   const [note, setNote] = useState("");
   const [touched, setTouched] = useState(false);
@@ -85,22 +92,44 @@ export function PaymentForm({
     Math.min(amt > 0 ? amt : 0, (amt > 0 ? amt : 0) - (interestNum > 0 ? interestNum : 0)),
   );
 
-  // Accounts that can take the leg: same currency as the debt, since the posting
-  // moves cash with no conversion.
-  const eligible = accounts.filter((a) => a.currency === liability.currency);
+  // Any account can take the leg now. When it holds a different currency from the
+  // debt, the payment converts at today's rate into an editable account figure.
+  const selectedAccount = accounts.find((a) => a.id === accountId) ?? null;
+  const crossCurrency =
+    selectedAccount != null && selectedAccount.currency !== liability.currency;
+
+  // The payment amount expressed in a given account currency, rounded to cents.
+  function inAccountCurrency(rawAmount: number, accountCurrency: string): string {
+    const v = convertBetween(rawAmount, liability.currency, accountCurrency, base, rateMap);
+    if (v == null || !Number.isFinite(v)) return "";
+    return String(Math.round(v * 100) / 100);
+  }
 
   function changeAmount(next: string) {
     setAmount(next);
+    const n = numeric(next);
+    const valid = Number.isFinite(n) && n > 0;
     if (hasInterest && !interestEdited) {
-      const n = numeric(next);
-      if (Number.isFinite(n) && n > 0) {
-        setInterest(
-          String(Math.round(splitNextPayment(balance, apr!, n).interest * 100) / 100),
-        );
-      } else {
-        setInterest("");
-      }
+      setInterest(
+        valid
+          ? String(Math.round(splitNextPayment(balance, apr!, n).interest * 100) / 100)
+          : "",
+      );
     }
+    if (crossCurrency && !accountAmountEdited) {
+      setAccountAmount(valid ? inAccountCurrency(n, selectedAccount!.currency) : "");
+    }
+  }
+
+  function changeAccount(next: string) {
+    setAccountId(next);
+    setAccountAmountEdited(false);
+    const acct = accounts.find((a) => a.id === next);
+    setAccountAmount(
+      acct && acct.currency !== liability.currency && amt > 0
+        ? inAccountCurrency(amt, acct.currency)
+        : "",
+    );
   }
 
   function handleSubmit(e: React.FormEvent) {
@@ -113,6 +142,9 @@ export function PaymentForm({
       amount,
       principal_amount: hasInterest ? principal : amount,
       interest_amount: hasInterest ? interest || 0 : 0,
+      // Only meaningful cross-currency; blank lets the server convert at today's
+      // rate. Same-currency payments leave it null and move the account 1:1.
+      account_amount: crossCurrency ? accountAmount || null : null,
       paid_on: paidOn || null,
       note: note.trim() === "" ? null : note,
     });
@@ -162,16 +194,35 @@ export function PaymentForm({
         id="payment-account"
         label="From account"
         value={accountId}
-        onChange={setAccountId}
+        onChange={changeAccount}
         options={[
           { value: "", label: "No account", hint: "Balance only" },
-          ...eligible.map((a) => ({
+          ...accounts.map((a) => ({
             value: a.id,
             label: a.name,
             hint: a.currency,
           })),
         ]}
       />
+
+      {crossCurrency ? (
+        <div className="rounded-sm border border-border bg-surface p-3">
+          <Input
+            id="payment-account-amount"
+            label={`Amount from account (${selectedAccount!.currency})`}
+            inputMode="decimal"
+            value={accountAmount}
+            onChange={(e) => {
+              setAccountAmount(e.target.value);
+              setAccountAmountEdited(true);
+            }}
+          />
+          <p className="mt-2 text-xs text-text-muted">
+            Converted from {liability.currency} at today&rsquo;s rate. Edit it to
+            match what actually left the account.
+          </p>
+        </div>
+      ) : null}
 
       <Input
         id="payment-date"

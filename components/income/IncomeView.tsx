@@ -9,10 +9,9 @@ import {
   deleteIncome,
   type IncomeInput,
 } from "@/app/(app)/income/actions";
-import { monthlyEquivalent, recurrenceMonthly } from "@/lib/finance/calculations";
+import { recurrenceMonthly } from "@/lib/finance/calculations";
 import { convertToBase } from "@/lib/finance/currencies";
 import { Amount } from "@/components/ui/Amount";
-import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { Modal } from "@/components/ui/Modal";
@@ -46,14 +45,6 @@ function reduce(state: Income[], action: Optimistic): Income[] {
   return state.filter((r) => r.id !== action.id);
 }
 
-const FREQUENCY_BADGE: Record<Income["frequency"], string> = {
-  monthly: "Monthly",
-  weekly: "Weekly",
-  biweekly: "Biweekly",
-  annual: "Annual",
-  one_time: "One time",
-};
-
 export function IncomeView({
   rows,
   categories,
@@ -73,18 +64,8 @@ export function IncomeView({
   const categoryMap = new Map(categories.map((c) => [c.id, c]));
   const accountMap = new Map(accounts.map((a) => [a.id, a]));
 
-  // Monthly equivalent of recurring income: active rules, plus any legacy
-  // per-entry recurring amounts (generated occurrences are one-time and so add
-  // nothing here, never double-counting a rule).
+  // Monthly equivalent of recurring income, summed from the active rules.
   let monthlyTotal = 0;
-  let unconverted = 0;
-  for (const r of optimistic) {
-    const monthly = monthlyEquivalent(Number(r.amount), r.frequency);
-    if (monthly === 0) continue;
-    const converted = convertToBase(monthly, r.currency, base, rateMap);
-    if (converted == null) unconverted += 1;
-    else monthlyTotal += converted;
-  }
   for (const rule of rules) {
     if (!rule.active) continue;
     const v = convertToBase(
@@ -136,7 +117,6 @@ export function IncomeView({
             source: input.source,
             amount: Number(String(input.amount).replace(/[\s,]/g, "")),
             currency: input.currency,
-            frequency: input.frequency,
             category_id: input.category_id ?? null,
             account_id: input.account_id ?? null,
             posted_amount: null,
@@ -168,12 +148,7 @@ export function IncomeView({
           <p className="mt-3 font-serif text-4xl tracking-tight text-text">
             <Amount value={monthlyTotal} currency={base} quiet code />
           </p>
-          <p className="mt-1 text-xs text-text-muted">
-            Monthly equivalent
-            {unconverted > 0
-              ? `, plus ${unconverted} in other currencies`
-              : ""}
-          </p>
+          <p className="mt-1 text-xs text-text-muted">Monthly equivalent</p>
         </div>
         {canWrite ? (
           <Button
@@ -222,8 +197,6 @@ export function IncomeView({
       ) : (
         <div className="mt-8 flex flex-col gap-2">
           {optimistic.map((row) => {
-            const monthly = monthlyEquivalent(Number(row.amount), row.frequency);
-            const monthlyBase = convertToBase(monthly, row.currency, base, rateMap);
             const isTemp = row.id.startsWith("temp-");
             return (
               <motion.div
@@ -236,9 +209,6 @@ export function IncomeView({
                   <div className="min-w-0">
                     <div className="flex items-center gap-2.5">
                       <p className="truncate text-sm text-text">{row.source}</p>
-                      {row.frequency !== "one_time" ? (
-                        <Badge>{FREQUENCY_BADGE[row.frequency]}</Badge>
-                      ) : null}
                     </div>
                     <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-text-faint">
                       <span>{row.date}</span>
@@ -270,17 +240,6 @@ export function IncomeView({
                         code
                         className="text-sm"
                       />
-                      {row.frequency !== "one_time" && monthlyBase != null ? (
-                        <p className="mt-0.5 text-xs text-text-faint">
-                          <Amount
-                            value={monthlyBase}
-                            currency={base}
-                            tone="muted"
-                            quiet
-                          />
-                          {" / mo"}
-                        </p>
-                      ) : null}
                     </div>
 
                     {canWrite && !isTemp ? (

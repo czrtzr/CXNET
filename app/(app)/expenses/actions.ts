@@ -11,11 +11,9 @@ import {
 import { isCurrencyCode } from "@/lib/finance/currencies";
 import { accountDelta } from "@/lib/finance/posting";
 import {
-  RECURRENCE_INTERVALS,
   CATEGORY_KINDS,
   type Category,
   type CategoryKind,
-  type RecurrenceInterval,
 } from "@/types";
 
 export type ActionResult = { ok: true } | { ok: false; error: string };
@@ -31,8 +29,6 @@ export type ExpenseInput = {
   account_id?: string | null;
   date: string;
   notes?: string | null;
-  is_recurring: boolean;
-  recurrence: RecurrenceInterval | null;
 };
 
 // An expense that posts to an account refreshes that account's balance and the
@@ -54,8 +50,6 @@ type BuiltExpense = {
   account_id: string | null;
   date: string;
   notes: string | null;
-  is_recurring: boolean;
-  recurrence: RecurrenceInterval | null;
 };
 
 function build(
@@ -72,14 +66,6 @@ function build(
     return { ok: false, error: "Pick a currency." };
   if (!isValidDate(input.date)) return { ok: false, error: "Pick a date." };
 
-  const isRecurring = Boolean(input.is_recurring);
-  let recurrence: RecurrenceInterval | null = null;
-  if (isRecurring) {
-    if (!input.recurrence || !RECURRENCE_INTERVALS.includes(input.recurrence))
-      return { ok: false, error: "Choose how often it recurs." };
-    recurrence = input.recurrence;
-  }
-
   return {
     ok: true,
     payload: {
@@ -90,8 +76,6 @@ function build(
       account_id: input.account_id || null,
       date: input.date,
       notes: cleanText(input.notes, 1000),
-      is_recurring: isRecurring,
-      recurrence,
     },
   };
 }

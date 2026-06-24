@@ -96,7 +96,6 @@ export async function generateDueRecurring(
           source: rule.label,
           amount: rule.amount,
           currency: rule.currency,
-          frequency: "one_time",
           category_id: rule.category_id,
           account_id: rule.account_id,
           posted_amount,
@@ -115,7 +114,6 @@ export async function generateDueRecurring(
           posted_amount,
           recurring_rule_id: rule.id,
           date: current,
-          is_recurring: false,
           notes: rule.notes,
         });
       }

@@ -5,7 +5,6 @@ import { createClient } from "@/lib/supabase/server";
 import { parseAmount, isValidDate, cleanText } from "@/lib/finance/input";
 import { isCurrencyCode } from "@/lib/finance/currencies";
 import { accountDelta } from "@/lib/finance/posting";
-import { INCOME_FREQUENCIES, type IncomeFrequency } from "@/types";
 
 export type ActionResult = { ok: true } | { ok: false; error: string };
 
@@ -13,7 +12,6 @@ export type IncomeInput = {
   source: string;
   amount: number | string;
   currency: string;
-  frequency: IncomeFrequency;
   category_id?: string | null;
   account_id?: string | null;
   date: string;
@@ -35,7 +33,6 @@ type BuiltIncome = {
   source: string;
   amount: number;
   currency: string;
-  frequency: IncomeFrequency;
   category_id: string | null;
   account_id: string | null;
   date: string;
@@ -55,8 +52,6 @@ function build(
 
   if (!isCurrencyCode(input.currency))
     return { ok: false, error: "Pick a currency." };
-  if (!INCOME_FREQUENCIES.includes(input.frequency))
-    return { ok: false, error: "Pick how often this arrives." };
   if (!isValidDate(input.date)) return { ok: false, error: "Pick a date." };
 
   return {
@@ -65,7 +60,6 @@ function build(
       source,
       amount,
       currency: input.currency,
-      frequency: input.frequency,
       // A blank selection clears the category; otherwise trust the id and let
       // the foreign key reject anything that is not a real category.
       category_id: input.category_id ? input.category_id : null,
