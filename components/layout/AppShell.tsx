@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import { Sidebar } from "./Sidebar";
 import { MobileNav } from "./MobileNav";
+import { GuestBanner } from "./GuestBanner";
 import { ToastProvider } from "@/components/ui/Toast";
 import { Grain } from "@/components/svg/Grain";
 
@@ -9,11 +10,13 @@ import { Grain } from "@/components/svg/Grain";
 export function AppShell({
   displayName,
   isSuperAdmin,
+  isGuest,
   signOut,
   children,
 }: {
   displayName: string;
   isSuperAdmin: boolean;
+  isGuest: boolean;
   signOut: () => void;
   children: ReactNode;
 }) {
@@ -26,6 +29,7 @@ export function AppShell({
         signOut={signOut}
       />
       <div className="md:pl-[220px]">
+        {isGuest ? <GuestBanner signOut={signOut} /> : null}
         <main className="mx-auto w-full max-w-5xl px-5 pb-24 pt-6 md:px-8 md:pb-12 md:pt-10">
           {children}
         </main>

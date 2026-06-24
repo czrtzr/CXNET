@@ -8,6 +8,7 @@ import { Grain } from "@/components/svg/Grain";
 function messageFor(code: string | undefined): string | null {
   if (!code) return null;
   if (code === "config") return "The app is not connected to its database yet.";
+  if (code === "demo") return "The demo is unavailable right now. Try again.";
   return "We could not sign you in. Try again.";
 }
 

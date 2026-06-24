@@ -3,6 +3,7 @@
 import { motion, useReducedMotion } from "motion/react";
 import { CrestReveal } from "./CrestReveal";
 import { GoogleSignIn } from "./GoogleSignIn";
+import { DemoSignIn } from "./DemoSignIn";
 import { Guilloche } from "@/components/svg/Guilloche";
 
 // The login lockup, orchestrated: an oxblood bloom breathes behind a faintly
@@ -85,6 +86,7 @@ export function LoginPanel({ error }: { error: string | null }) {
             {error}
           </p>
         ) : null}
+        <DemoSignIn />
       </motion.div>
     </div>
   );

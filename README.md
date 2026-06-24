@@ -39,7 +39,17 @@ A private, invite only wealth command center. Next.js 16, Supabase, Vercel.
    npm run seed:admin
    ```
 
-5. Run the app:
+5. (Optional) Seed the read-only demo account that powers the "Explore the
+   demo" link on the login screen. Set `DEMO_EMAIL` and `DEMO_PASSWORD` in
+   `.env.local` first (the app signs in with the same pair):
+
+   ```bash
+   npm run seed:demo
+   ```
+
+   Re-running it resets the demo to its original data.
+
+6. Run the app:
 
    ```bash
    npm run dev

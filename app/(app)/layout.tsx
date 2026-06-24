@@ -34,11 +34,13 @@ export default async function AppLayout({
 
   const displayName = profile?.display_name ?? profile?.email ?? user.email ?? "";
   const isSuperAdmin = profile?.role === "super_admin";
+  const isGuest = profile?.role === "guest";
 
   return (
     <AppShell
       displayName={displayName}
       isSuperAdmin={isSuperAdmin}
+      isGuest={isGuest}
       signOut={signOut}
     >
       {children}
