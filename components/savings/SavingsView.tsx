@@ -24,6 +24,8 @@ import { Card } from "@/components/ui/Card";
 import { Modal } from "@/components/ui/Modal";
 import { useToast } from "@/components/ui/Toast";
 import { PageTransition } from "@/components/layout/PageTransition";
+import { DrawUnderline } from "@/components/svg/DrawUnderline";
+import { PulseLine } from "@/components/svg/PulseLine";
 import { EmptyState } from "@/components/finance/EmptyState";
 import { SavingForm } from "./SavingForm";
 import { ReconcileDialog } from "./ReconcileDialog";
@@ -288,11 +290,13 @@ export function SavingsView({
           <p className="mt-3 font-serif text-4xl tracking-tight text-text">
             <Amount value={total} currency={base} quiet code />
           </p>
-          <p className="mt-1 text-xs text-text-muted">
+          <DrawUnderline width={150} className="mt-1 text-brass" />
+          <p className="mt-2 text-xs text-text-muted">
             Across {optimistic.length}{" "}
             {optimistic.length === 1 ? "account" : "accounts"}
             {unconverted > 0 ? `, plus ${unconverted} in other currencies` : ""}
           </p>
+          <PulseLine width={150} height={26} className="mt-3 text-brass/55" />
         </div>
         {canWrite ? (
           <div className="flex items-center gap-2">

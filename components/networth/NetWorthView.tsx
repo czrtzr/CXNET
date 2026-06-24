@@ -33,6 +33,8 @@ import { Card } from "@/components/ui/Card";
 import { Modal } from "@/components/ui/Modal";
 import { useToast } from "@/components/ui/Toast";
 import { PageTransition } from "@/components/layout/PageTransition";
+import { DrawUnderline } from "@/components/svg/DrawUnderline";
+import { BalanceBeam } from "@/components/svg/BalanceBeam";
 import { AssetForm } from "./AssetForm";
 import { LiabilityForm } from "./LiabilityForm";
 import { LoanSchedule } from "./LoanSchedule";
@@ -360,12 +362,18 @@ export function NetWorthView({
           <p className="mt-3 font-serif text-4xl tracking-tight text-text">
             <Amount value={netWorth} currency={base} quiet code />
           </p>
-          <p className="mt-1 text-xs text-text-muted">
+          <DrawUnderline width={160} className="mt-1 text-brass" />
+          <p className="mt-2 text-xs text-text-muted">
             Assets <Amount value={assetsTotal} currency={base} tone="plain" className="text-text-muted" />
             {" · "}
             Liabilities <Amount value={payableTotal} currency={base} tone="plain" className="text-text-muted" />
           </p>
         </div>
+        <BalanceBeam
+          tilt={netWorth >= 0 ? 1 : -1}
+          size={132}
+          className="hidden shrink-0 text-brass/80 sm:block"
+        />
       </div>
 
       {/* Assets */}

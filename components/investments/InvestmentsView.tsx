@@ -19,6 +19,8 @@ import { Button } from "@/components/ui/Button";
 import { Modal } from "@/components/ui/Modal";
 import { useToast } from "@/components/ui/Toast";
 import { RefreshIcon } from "@/components/svg/icons";
+import { DrawUnderline } from "@/components/svg/DrawUnderline";
+import { PulseLine } from "@/components/svg/PulseLine";
 import { PageTransition } from "@/components/layout/PageTransition";
 import { EmptyState } from "@/components/finance/EmptyState";
 import { InvestmentForm } from "./InvestmentForm";
@@ -185,7 +187,8 @@ export function InvestmentsView({
           <p className="mt-3 font-serif text-4xl tracking-tight text-text">
             <CountUp value={total} currency={base} quiet />
           </p>
-          <p className="mt-1 flex flex-wrap items-center gap-x-1.5 text-xs text-text-muted">
+          <DrawUnderline width={150} className="mt-1 text-brass" />
+          <p className="mt-2 flex flex-wrap items-center gap-x-1.5 text-xs text-text-muted">
             <span>
               Portfolio value
               {unconverted > 0 ? `, plus ${unconverted} in other currencies` : ""}
@@ -198,6 +201,7 @@ export function InvestmentsView({
               </span>
             ) : null}
           </p>
+          <PulseLine width={150} height={26} className="mt-3 text-brass/55" />
         </div>
         <div className="flex items-center gap-2">
           {canWrite && hasLive ? (

@@ -1,13 +1,15 @@
 "use client";
 
-import { motion } from "motion/react";
 import { CountUp } from "@/components/ui/CountUp";
 import { Amount } from "@/components/ui/Amount";
 import { formatPercent } from "@/lib/finance/format";
 import { Card } from "@/components/ui/Card";
 import { CertificateFrame } from "@/components/svg/CertificateFrame";
 import { Guilloche } from "@/components/svg/Guilloche";
+import { DrawUnderline } from "@/components/svg/DrawUnderline";
+import { PulseLine } from "@/components/svg/PulseLine";
 import { PageTransition } from "@/components/layout/PageTransition";
+import { Reveal, RevealGroup, RevealItem } from "@/components/motion/Reveal";
 import {
   IncomeIcon,
   ExpensesIcon,
@@ -68,20 +70,6 @@ function relativeDay(t: number): string {
   return new Date(t).toLocaleDateString("en-US", { month: "short", day: "numeric" });
 }
 
-// A reveal that eases its children in once, staggered, for the signature
-// settling-into-place feel on the overview.
-function Reveal({ delay = 0, children }: { delay?: number; children: React.ReactNode }) {
-  return (
-    <motion.div
-      initial={{ opacity: 0, y: 10 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.5, delay, ease: [0.22, 1, 0.36, 1] }}
-    >
-      {children}
-    </motion.div>
-  );
-}
-
 function SectionLabel({ children }: { children: React.ReactNode }) {
   return (
     <p className="text-xs uppercase tracking-[0.18em] text-text-faint">{children}</p>
@@ -135,6 +123,10 @@ export function DashboardView({
               <p className="mt-3 font-serif text-5xl tracking-tight text-text">
                 <CountUp value={netWorth} currency={base} quiet code />
               </p>
+              <div className="mt-2 flex items-center gap-3">
+                <DrawUnderline width={170} className="text-brass" />
+                <PulseLine width={120} height={22} className="text-brass/60" />
+              </div>
               <div className="mt-3 flex flex-wrap items-center gap-x-5 gap-y-1 text-sm text-text-muted">
                 <span>
                   Accounts <Amount value={accountsTotal} currency={base} tone="plain" quiet />
@@ -285,33 +277,35 @@ export function DashboardView({
               <Card className="h-full px-5 py-5">
                 <SectionLabel>Recent activity</SectionLabel>
                 {activity.length > 0 ? (
-                  <ul className="mt-4 space-y-3">
+                  <RevealGroup delay={0.42} stagger={0.07} className="mt-4 space-y-3">
                     {activity.map((item) => {
                       const Glyph = GLYPH[item.kind];
                       return (
-                        <li key={item.id} className="flex items-center gap-3">
-                          <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full border border-border text-text-muted">
-                            <Glyph size={14} />
-                          </span>
-                          <div className="min-w-0 flex-1">
-                            <p className="truncate text-sm text-text">{item.label}</p>
-                            <p className="text-xs text-text-faint">
-                              {item.sublabel} · {relativeDay(item.t)}
-                            </p>
+                        <RevealItem key={item.id}>
+                          <div className="flex items-center gap-3">
+                            <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full border border-border text-text-muted">
+                              <Glyph size={14} />
+                            </span>
+                            <div className="min-w-0 flex-1">
+                              <p className="truncate text-sm text-text">{item.label}</p>
+                              <p className="text-xs text-text-faint">
+                                {item.sublabel} · {relativeDay(item.t)}
+                              </p>
+                            </div>
+                            <span className="shrink-0 text-sm">
+                              <Amount
+                                value={item.amount}
+                                currency={item.currency}
+                                signed={item.tone !== "muted"}
+                                tone={item.tone}
+                                quiet
+                              />
+                            </span>
                           </div>
-                          <span className="shrink-0 text-sm">
-                            <Amount
-                              value={item.amount}
-                              currency={item.currency}
-                              signed={item.tone !== "muted"}
-                              tone={item.tone}
-                              quiet
-                            />
-                          </span>
-                        </li>
+                        </RevealItem>
                       );
                     })}
-                  </ul>
+                  </RevealGroup>
                 ) : (
                   <p className="mt-4 text-sm text-text-muted">No activity yet.</p>
                 )}
