@@ -1,7 +1,6 @@
 "use client";
 
 import { useMemo, useOptimistic, useState, useTransition } from "react";
-import { motion } from "motion/react";
 import type { AccountRef, Category, Expense, RecurringRule } from "@/types";
 import {
   createExpense,
@@ -17,6 +16,10 @@ import { Card } from "@/components/ui/Card";
 import { Modal } from "@/components/ui/Modal";
 import { useToast } from "@/components/ui/Toast";
 import { PageTransition } from "@/components/layout/PageTransition";
+import { AnimatedList, AnimatedItem } from "@/components/motion/AnimatedList";
+import { Reveal } from "@/components/motion/Reveal";
+import { DrawUnderline } from "@/components/svg/DrawUnderline";
+import { PulseLine } from "@/components/svg/PulseLine";
 import { EmptyState } from "@/components/finance/EmptyState";
 import { ChangeView } from "@/components/finance/ChangeView";
 import { ExpenseForm } from "./ExpenseForm";
@@ -168,21 +171,29 @@ export function ExpensesView({
           <p className="mt-3 font-serif text-4xl tracking-tight text-text">
             <Amount value={total} currency={base} quiet code />
           </p>
-          <p className="mt-1 text-xs text-text-muted">
+          <DrawUnderline width={150} className="mt-1 text-brass" />
+          <p className="mt-2 text-xs text-text-muted">
             Total logged
             {unconverted > 0 ? `, plus ${unconverted} in other currencies` : ""}
           </p>
         </div>
-        {canWrite ? (
-          <Button
-            onClick={() => {
-              setEditing(null);
-              setOpen(true);
-            }}
-          >
-            Add expense
-          </Button>
-        ) : null}
+        <div className="flex flex-col items-end gap-3">
+          {canWrite ? (
+            <Button
+              onClick={() => {
+                setEditing(null);
+                setOpen(true);
+              }}
+            >
+              Add expense
+            </Button>
+          ) : null}
+          <PulseLine
+            width={140}
+            height={30}
+            className="hidden text-red-bright/70 sm:block"
+          />
+        </div>
       </div>
 
       {optimistic.length > 0 ? (
@@ -219,26 +230,23 @@ export function ExpensesView({
         />
       ) : (
         <div className="mt-8 flex flex-col gap-6">
-          {groups.map((group) => (
-            <div key={group.label}>
+          {groups.map((group, gi) => (
+            <Reveal key={group.label} delay={gi * 0.05}>
               <p className="mb-2 text-xs uppercase tracking-[0.18em] text-text-faint">
                 {group.label}
               </p>
-              <div className="flex flex-col gap-2">
+              <AnimatedList className="flex flex-col gap-2">
                 {group.rows.map((row) => {
                   const category = row.category_id
                     ? categoryById.get(row.category_id)
                     : undefined;
                   const isTemp = row.id.startsWith("temp-");
                   return (
-                    <motion.div
-                      key={row.id}
-                      layout
-                      initial={{ opacity: 0, y: 6 }}
-                      animate={{ opacity: isTemp ? 0.6 : 1, y: 0 }}
-                    >
+                    <AnimatedItem key={row.id}>
                       <Card
-                        className="group flex items-center justify-between gap-4 border-l-2 px-5 py-4"
+                        className={`group flex items-center justify-between gap-4 border-l-2 px-5 py-4 ${
+                          isTemp ? "opacity-60" : ""
+                        }`}
                         style={{
                           borderLeftColor: category?.color ?? "var(--border)",
                         }}
@@ -289,11 +297,11 @@ export function ExpensesView({
                           ) : null}
                         </div>
                       </Card>
-                    </motion.div>
+                    </AnimatedItem>
                   );
                 })}
-              </div>
-            </div>
+              </AnimatedList>
+            </Reveal>
           ))}
         </div>
       )}

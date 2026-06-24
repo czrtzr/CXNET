@@ -1,7 +1,6 @@
 "use client";
 
 import { useMemo, useOptimistic, useState, useTransition } from "react";
-import { motion } from "motion/react";
 import type { AccountRef, Category, Income, RecurringRule } from "@/types";
 import {
   createIncome,
@@ -17,6 +16,9 @@ import { Card } from "@/components/ui/Card";
 import { Modal } from "@/components/ui/Modal";
 import { useToast } from "@/components/ui/Toast";
 import { PageTransition } from "@/components/layout/PageTransition";
+import { AnimatedList, AnimatedItem } from "@/components/motion/AnimatedList";
+import { DrawUnderline } from "@/components/svg/DrawUnderline";
+import { PulseLine } from "@/components/svg/PulseLine";
 import { EmptyState } from "@/components/finance/EmptyState";
 import { ChangeView } from "@/components/finance/ChangeView";
 import { RecurringRulesPanel } from "@/components/finance/RecurringRulesPanel";
@@ -148,18 +150,26 @@ export function IncomeView({
           <p className="mt-3 font-serif text-4xl tracking-tight text-text">
             <Amount value={monthlyTotal} currency={base} quiet code />
           </p>
-          <p className="mt-1 text-xs text-text-muted">Monthly equivalent</p>
+          <DrawUnderline width={150} className="mt-1 text-brass" />
+          <p className="mt-2 text-xs text-text-muted">Monthly equivalent</p>
         </div>
-        {canWrite ? (
-          <Button
-            onClick={() => {
-              setEditing(null);
-              setOpen(true);
-            }}
-          >
-            Add income
-          </Button>
-        ) : null}
+        <div className="flex flex-col items-end gap-3">
+          {canWrite ? (
+            <Button
+              onClick={() => {
+                setEditing(null);
+                setOpen(true);
+              }}
+            >
+              Add income
+            </Button>
+          ) : null}
+          <PulseLine
+            width={140}
+            height={30}
+            className="hidden text-pos/70 sm:block"
+          />
+        </div>
       </div>
 
       {optimistic.length > 0 ? (
@@ -195,17 +205,16 @@ export function IncomeView({
           }
         />
       ) : (
-        <div className="mt-8 flex flex-col gap-2">
+        <AnimatedList className="mt-8 flex flex-col gap-2">
           {optimistic.map((row) => {
             const isTemp = row.id.startsWith("temp-");
             return (
-              <motion.div
-                key={row.id}
-                layout
-                initial={{ opacity: 0, y: 6 }}
-                animate={{ opacity: isTemp ? 0.6 : 1, y: 0 }}
-              >
-                <Card className="group flex items-center justify-between gap-4 px-5 py-4">
+              <AnimatedItem key={row.id}>
+                <Card
+                  className={`group flex items-center justify-between gap-4 px-5 py-4 ${
+                    isTemp ? "opacity-60" : ""
+                  }`}
+                >
                   <div className="min-w-0">
                     <div className="flex items-center gap-2.5">
                       <p className="truncate text-sm text-text">{row.source}</p>
@@ -265,10 +274,10 @@ export function IncomeView({
                     ) : null}
                   </div>
                 </Card>
-              </motion.div>
+              </AnimatedItem>
             );
           })}
-        </div>
+        </AnimatedList>
       )}
 
       <Modal

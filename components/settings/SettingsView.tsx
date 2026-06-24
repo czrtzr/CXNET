@@ -13,6 +13,9 @@ import { Card } from "@/components/ui/Card";
 import { SelectMenu } from "@/components/ui/SelectMenu";
 import { useToast } from "@/components/ui/Toast";
 import { PageTransition } from "@/components/layout/PageTransition";
+import { Reveal } from "@/components/motion/Reveal";
+import { PulseLine } from "@/components/svg/PulseLine";
+import { DrawUnderline } from "@/components/svg/DrawUnderline";
 
 type Props = {
   base: string;
@@ -95,11 +98,26 @@ export function SettingsView({
 
   return (
     <PageTransition>
-      <p className="text-xs uppercase tracking-[0.22em] text-text-faint">Settings</p>
-      <p className="mt-3 font-serif text-4xl tracking-tight text-text">Preferences</p>
-      <p className="mt-1 text-xs text-text-muted">Signed in as {displayName}</p>
+      <div className="flex items-start justify-between gap-6">
+        <div>
+          <p className="text-xs uppercase tracking-[0.22em] text-text-faint">
+            Settings
+          </p>
+          <p className="mt-3 font-serif text-4xl tracking-tight text-text">
+            Preferences
+          </p>
+          <DrawUnderline width={160} className="mt-1 text-brass" />
+          <p className="mt-2 text-xs text-text-muted">Signed in as {displayName}</p>
+        </div>
+        <PulseLine
+          width={150}
+          height={34}
+          className="mt-2 hidden text-leather-light/70 sm:block"
+        />
+      </div>
 
-      <Card className="mt-8 max-w-xl px-5 py-5">
+      <Reveal delay={0.08} className="mt-8 max-w-xl">
+        <Card className="px-5 py-5">
         <div className="flex flex-col gap-1">
           <p className="text-sm text-text">Base currency</p>
           <p className="text-xs text-text-muted">
@@ -128,9 +146,11 @@ export function SettingsView({
             <p className="text-xs text-text-faint">The demo account is read only.</p>
           )}
         </div>
-      </Card>
+        </Card>
+      </Reveal>
 
-      <Card className="mt-4 max-w-xl px-5 py-5">
+      <Reveal delay={0.16} className="mt-4 max-w-xl">
+        <Card className="px-5 py-5">
         <div className="flex flex-col gap-1">
           <p className="text-sm text-text">Default accounts</p>
           <p className="text-xs text-text-muted">
@@ -179,9 +199,11 @@ export function SettingsView({
             </div>
           </>
         )}
-      </Card>
+        </Card>
+      </Reveal>
 
-      <Card className="mt-4 max-w-xl px-5 py-5">
+      <Reveal delay={0.24} className="mt-4 max-w-xl">
+        <Card className="px-5 py-5">
         <div className="flex flex-col gap-1">
           <p className="text-sm text-text">Legal</p>
           <p className="text-xs text-text-muted">
@@ -204,7 +226,8 @@ export function SettingsView({
             </Link>
           ))}
         </div>
-      </Card>
+        </Card>
+      </Reveal>
     </PageTransition>
   );
 }
