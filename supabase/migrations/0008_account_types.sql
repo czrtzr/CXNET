@@ -1,10 +1,10 @@
--- CXNET — account types and investment linkage
+-- CXNET - account types and investment linkage
 -- The savings rows have always been "accounts"; now each carries an explicit
 -- type (defaulting to savings, the historical meaning) so chequing, cash,
 -- investment, and credit accounts live in the same place. Investments may be
 -- linked to an account, so an "investment account" can mirror the live value of
--- the positions held inside it. The mirroring is computed at read time — no
--- stored balance is moved — so a price tick is reflected without a write.
+-- the positions held inside it. The mirroring is computed at read time - no
+-- stored balance is moved - so a price tick is reflected without a write.
 
 -- ---------------------------------------------------------------------------
 -- Account type. 'savings' keeps every existing row reading exactly as before.

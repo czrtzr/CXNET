@@ -141,8 +141,8 @@ export async function deleteSaving(id: string): Promise<ActionResult> {
 }
 
 // Set the true balance of an account. The gap against the tracked balance is
-// booked as a real entry — an income when the true total is higher, an expense
-// when lower — tagged to the account so the posting trigger moves the balance to
+// booked as a real entry - an income when the true total is higher, an expense
+// when lower - tagged to the account so the posting trigger moves the balance to
 // exactly the figure entered. The adjustment therefore shows up in cashflow and
 // the account log like any other movement, rather than living in a separate
 // ledger. The current balance is re-read server side so the result lands on the

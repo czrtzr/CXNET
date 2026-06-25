@@ -1,37 +1,37 @@
 @import "tailwindcss";
 
 /*
-  CXNET design tokens — the single source of truth.
+  CXNET design tokens - the single source of truth.
   Nothing ad hoc downstream. Every color, font, and radius the app uses
   is declared here once and consumed as a Tailwind utility or var().
   Dark luxury only: there is no light theme.
 */
 
 :root {
-  /* Surfaces — warm near-black, faint brown cast, never cold blue-black */
+  /* Surfaces - warm near-black, faint brown cast, never cold blue-black */
   --bg-deep: #0a0807;
   --surface: #15120f;
   --surface-raised: #1d1813;
   --surface-hover: #251f19;
 
-  /* Hairline borders — warm white at low opacity */
+  /* Hairline borders - warm white at low opacity */
   --border: rgba(233, 214, 190, 0.08);
   --border-strong: rgba(233, 214, 190, 0.14);
 
-  /* Oxblood — the primary interactive accent */
+  /* Oxblood - the primary interactive accent */
   --red: #7a1620;
   --red-bright: #9b2230;
   --red-deep: #4d0e15;
 
-  /* Leather — structural and decorative */
+  /* Leather - structural and decorative */
   --leather: #5e3d24;
   --leather-light: #7a5234;
   --leather-deep: #3a2415;
 
-  /* Brass — restrained metallic, engraving and wax-seal rims only */
+  /* Brass - restrained metallic, engraving and wax-seal rims only */
   --brass: #b08d57;
 
-  /* Text — warm white, never pure white */
+  /* Text - warm white, never pure white */
   --text: #f1ece4;
   --text-muted: rgba(241, 236, 228, 0.45);
   --text-faint: rgba(241, 236, 228, 0.28);

@@ -27,6 +27,28 @@ export function useToast() {
   return ctx;
 }
 
+const DEMO_NOTICE = "Demo account. Sign in to make changes.";
+
+// Wraps a write action so the read-only demo can keep every button visible
+// instead of hiding it. In a writable session the handler runs as usual; as the
+// guest it is swapped for a toast that explains why nothing was saved. Use it on
+// any onClick that opens a write form or performs a change:
+//   const guard = useDemoGuard(canWrite);
+//   <Button onClick={guard(() => setOpen(true))}>Add income</Button>
+export function useDemoGuard(canWrite: boolean) {
+  const { toast } = useToast();
+  return useCallback(
+    (handler?: () => void) => () => {
+      if (canWrite) {
+        handler?.();
+        return;
+      }
+      toast(DEMO_NOTICE);
+    },
+    [canWrite, toast],
+  );
+}
+
 // Toasts slide up from the bottom right and auto dismiss with a progress bar.
 export function ToastProvider({ children }: { children: ReactNode }) {
   const [toasts, setToasts] = useState<ToastItem[]>([]);

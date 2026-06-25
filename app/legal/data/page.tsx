@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { Section, P, List, LI, Term } from "@/components/legal/prose";
 
 export const metadata: Metadata = {
-  title: "Data & Security — CXNET",
+  title: "Data & Security",
   description:
     "The personal information CXNET holds, where it lives, and how it is protected.",
 };
@@ -38,7 +38,7 @@ export default function DataPage() {
             membership on the invitation allowlist.
           </LI>
           <LI>
-            <Term>Financial records.</Term> Everything you enter — account names
+            <Term>Financial records.</Term> Everything you enter: account names
             and balances, income and expense entries, investment positions,
             assets, liabilities, recurring rules, transfers, and reconciliation
             history, together with the currency and dates attached to each.
@@ -50,7 +50,7 @@ export default function DataPage() {
         </List>
         <P>
           We hold no payment-card numbers, no bank login credentials, and no
-          government identifiers. CXNET never connects to your bank — every
+          government identifiers. CXNET never connects to your bank. Every
           figure is entered by you.
         </P>
       </Section>
@@ -93,7 +93,7 @@ export default function DataPage() {
 
       <Section index={5} title="Access">
         <P>
-          Day-to-day, no one but you can see your records — row-level policies
+          Day-to-day, no one but you can see your records; row-level policies
           prevent it. The operator holds the administrative keys needed to run
           and repair the service and may access data only when necessary for
           maintenance, security, or a support request you have made. There is no

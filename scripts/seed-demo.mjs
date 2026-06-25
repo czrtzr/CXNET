@@ -11,13 +11,12 @@
 //   4. clear and reseed accounts, income, expenses, investments, assets,
 //      liabilities, debt payments, and a net-worth history trend.
 //
-// Credentials come from DEMO_EMAIL / DEMO_PASSWORD. The same pair is what the
-// app's "Explore the demo" button signs in with, so set them once in .env.local
-// (and in your Vercel project) and reuse them here. The service role key is
-// required and must never leave your machine or a trusted server.
+// There is no demo password. DEMO_EMAIL is just an internal handle (defaults to
+// demo@cxnet.app) and never receives mail; the app's "Explore the demo" button
+// mints a one-time magic-link token server-side to sign in. The service role key
+// is required and must never leave your machine or a trusted server.
 
 import { createClient } from "@supabase/supabase-js";
-import { randomBytes } from "node:crypto";
 
 const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -30,9 +29,6 @@ if (!url || !serviceRoleKey) {
   );
   process.exit(1);
 }
-
-const generatedPassword = randomBytes(18).toString("base64url");
-const password = process.env.DEMO_PASSWORD || generatedPassword;
 
 const admin = createClient(url, serviceRoleKey, {
   auth: { autoRefreshToken: false, persistSession: false },
@@ -75,13 +71,13 @@ function fail(label, error) {
   console.log(`Allowlisted ${email}`);
 }
 
-// 2. Create the auth user if absent, and ensure the password matches what the
-//    app will sign in with.
+// 2. Create the auth user if absent. No password: the app signs in via a
+//    one-time magic-link token, and the email is confirmed up front so the
+//    account is usable immediately.
 let userId;
 {
   const { data, error } = await admin.auth.admin.createUser({
     email,
-    password,
     email_confirm: true,
   });
   if (error) {
@@ -93,12 +89,6 @@ let userId;
   } else {
     userId = data.user.id;
     console.log("Created demo auth user.");
-    if (!process.env.DEMO_PASSWORD) {
-      console.log(
-        `\n  Generated demo password (set DEMO_PASSWORD to this in .env.local\n` +
-          `  and Vercel so the app can sign in):\n  ${password}\n`,
-      );
-    }
   }
 }
 
@@ -110,14 +100,6 @@ if (!userId) {
     .single();
   if (error || !data) fail("locate demo profile", error || new Error("no row"));
   userId = data.id;
-
-  // Keep the stored password aligned with DEMO_PASSWORD across reseeds.
-  if (process.env.DEMO_PASSWORD) {
-    const { error: pwErr } = await admin.auth.admin.updateUserById(userId, {
-      password,
-    });
-    fail("update demo password", pwErr);
-  }
 }
 
 // 3. Set the read-only guest role and tidy the profile. The service role runs

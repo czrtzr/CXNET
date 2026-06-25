@@ -1,4 +1,4 @@
--- CXNET — assets, liabilities, and debt payments
+-- CXNET - assets, liabilities, and debt payments
 -- The balance sheet beyond cash and investments: tangible assets (property,
 -- vehicles), the debts secured against or independent of them (mortgages, loans,
 -- credit, money owed either way), and recorded payments that pay a debt down.
@@ -25,7 +25,7 @@ create type public.liability_type as enum (
 create type public.debt_direction as enum ('owed_by_me', 'owed_to_me');
 
 -- ---------------------------------------------------------------------------
--- assets — manually valued tangible holdings. value is the current estimate.
+-- assets - manually valued tangible holdings. value is the current estimate.
 -- ---------------------------------------------------------------------------
 create table public.assets (
   id             uuid primary key default gen_random_uuid(),
@@ -43,7 +43,7 @@ create table public.assets (
 create index idx_assets_user on public.assets (user_id);
 
 -- ---------------------------------------------------------------------------
--- liabilities — debts in either direction. Amortization fields are optional, so
+-- liabilities - debts in either direction. Amortization fields are optional, so
 -- a simple "someone owes me $50" and a fully described mortgage share one table.
 -- asset_id secures a debt against an asset (mortgage → house) for the equity view.
 -- ---------------------------------------------------------------------------
@@ -69,9 +69,9 @@ create index idx_liabilities_user  on public.liabilities (user_id);
 create index idx_liabilities_asset on public.liabilities (asset_id);
 
 -- ---------------------------------------------------------------------------
--- debt_payments — a payment against a debt. The principal portion reduces the
+-- debt_payments - a payment against a debt. The principal portion reduces the
 -- balance; the full amount moves the linked account. Interest is recorded for
--- reporting but is not a balance of its own — it is simply the cost.
+-- reporting but is not a balance of its own - it is simply the cost.
 -- ---------------------------------------------------------------------------
 create table public.debt_payments (
   id               uuid primary key default gen_random_uuid(),
@@ -93,7 +93,7 @@ create index idx_debt_payments_liability on public.debt_payments (liability_id);
 -- ---------------------------------------------------------------------------
 -- Posting trigger for debt payments. The principal pays the debt down; the full
 -- payment moves the account (out for a debt I owe, in for money owed to me). On
--- delete the legs reverse — but only when the debt still exists, so deleting a
+-- delete the legs reverse - but only when the debt still exists, so deleting a
 -- liability (which cascades its payments) tears down cleanly without trying to
 -- refund historical account movements. SECURITY DEFINER, user_id-scoped.
 -- ---------------------------------------------------------------------------

@@ -17,7 +17,7 @@ import { Amount } from "@/components/ui/Amount";
 import { CountUp } from "@/components/ui/CountUp";
 import { Button } from "@/components/ui/Button";
 import { Modal } from "@/components/ui/Modal";
-import { useToast } from "@/components/ui/Toast";
+import { useToast, useDemoGuard } from "@/components/ui/Toast";
 import { RefreshIcon } from "@/components/svg/icons";
 import { DrawUnderline } from "@/components/svg/DrawUnderline";
 import { PulseLine } from "@/components/svg/PulseLine";
@@ -70,12 +70,13 @@ export function InvestmentsView({
   const [detailId, setDetailId] = useState<string | null>(null);
   const [offline, setOffline] = useState<Set<string>>(new Set());
   const { toast } = useToast();
+  const guard = useDemoGuard(canWrite);
 
   const adjusted = new Set(adjustedIds);
   const accountNameById = new Map(accounts.map((a) => [a.id, a.account_name]));
 
   // A position linked to an account mirrors into that account's balance, so it is
-  // counted under Accounts and left out of the standalone portfolio figure here —
+  // counted under Accounts and left out of the standalone portfolio figure here -
   // never both. Matches the dashboard's decomposition exactly.
   let total = 0;
   let linkedTotal = 0;
@@ -204,8 +205,8 @@ export function InvestmentsView({
           <PulseLine width={150} height={26} className="mt-3 text-brass/55" />
         </div>
         <div className="flex items-center gap-2">
-          {canWrite && hasLive ? (
-            <Button variant="outline" onClick={refresh} disabled={refreshing}>
+          {hasLive ? (
+            <Button variant="outline" onClick={guard(refresh)} disabled={refreshing}>
               <motion.span
                 animate={refreshing ? { rotate: 360 } : { rotate: 0 }}
                 transition={
@@ -220,16 +221,14 @@ export function InvestmentsView({
               {refreshing ? "Refreshing" : "Refresh"}
             </Button>
           ) : null}
-          {canWrite ? (
-            <Button
-              onClick={() => {
-                setEditing(null);
-                setOpen(true);
-              }}
-            >
-              Add position
-            </Button>
-          ) : null}
+          <Button
+            onClick={guard(() => {
+              setEditing(null);
+              setOpen(true);
+            })}
+          >
+            Add position
+          </Button>
         </div>
       </div>
 
@@ -238,16 +237,14 @@ export function InvestmentsView({
           title="No positions yet"
           hint="Add a stock, ETF, crypto, or a manual asset to track its value and history."
           action={
-            canWrite ? (
-              <Button
-                onClick={() => {
-                  setEditing(null);
-                  setOpen(true);
-                }}
-              >
-                Add position
-              </Button>
-            ) : undefined
+            <Button
+              onClick={guard(() => {
+                setEditing(null);
+                setOpen(true);
+              })}
+            >
+              Add position
+            </Button>
           }
         />
       ) : (

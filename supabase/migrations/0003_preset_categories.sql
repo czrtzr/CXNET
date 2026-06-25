@@ -1,4 +1,4 @@
--- CXNET — preset categories
+-- CXNET - preset categories
 -- Shared presets have user_id null, so every account reads them and no one can
 -- edit or delete them (enforced by the categories RLS policies). Colors are
 -- muted to sit on near-black. Names carry no hyphens, per the copy rules.

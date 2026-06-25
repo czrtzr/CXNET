@@ -40,8 +40,9 @@ A private, invite only wealth command center. Next.js 16, Supabase, Vercel.
    ```
 
 5. (Optional) Seed the read-only demo account that powers the "Explore the
-   demo" link on the login screen. Set `DEMO_EMAIL` and `DEMO_PASSWORD` in
-   `.env.local` first (the app signs in with the same pair):
+   demo" link on the login screen. There is no demo password to set: the link
+   signs in with a one-time magic-link token minted by the service role.
+   `DEMO_EMAIL` is just an internal handle and defaults to `demo@cxnet.app`.
 
    ```bash
    npm run seed:demo

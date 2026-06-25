@@ -22,7 +22,7 @@ import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { Modal } from "@/components/ui/Modal";
-import { useToast } from "@/components/ui/Toast";
+import { useToast, useDemoGuard } from "@/components/ui/Toast";
 import { PageTransition } from "@/components/layout/PageTransition";
 import { DrawUnderline } from "@/components/svg/DrawUnderline";
 import { PulseLine } from "@/components/svg/PulseLine";
@@ -154,6 +154,7 @@ export function SavingsView({
   const [transferFrom, setTransferFrom] = useState<string | null>(null);
   const [expandedLog, setExpandedLog] = useState<string | null>(null);
   const { toast } = useToast();
+  const guard = useDemoGuard(canWrite);
 
   const multipleAccounts = optimistic.length >= 2;
   function openTransfer(fromId: string | null) {
@@ -298,23 +299,21 @@ export function SavingsView({
           </p>
           <PulseLine width={150} height={26} className="mt-3 text-brass/55" />
         </div>
-        {canWrite ? (
-          <div className="flex items-center gap-2">
-            {multipleAccounts ? (
-              <Button variant="outline" onClick={() => openTransfer(null)}>
-                Transfer
-              </Button>
-            ) : null}
-            <Button
-              onClick={() => {
-                setEditing(null);
-                setOpen(true);
-              }}
-            >
-              Add account
+        <div className="flex items-center gap-2">
+          {multipleAccounts ? (
+            <Button variant="outline" onClick={guard(() => openTransfer(null))}>
+              Transfer
             </Button>
-          </div>
-        ) : null}
+          ) : null}
+          <Button
+            onClick={guard(() => {
+              setEditing(null);
+              setOpen(true);
+            })}
+          >
+            Add account
+          </Button>
+        </div>
       </div>
 
       {optimistic.length === 0 ? (
@@ -322,16 +321,14 @@ export function SavingsView({
           title="No accounts yet"
           hint="Add a savings account and set a goal to track progress toward it."
           action={
-            canWrite ? (
-              <Button
-                onClick={() => {
-                  setEditing(null);
-                  setOpen(true);
-                }}
-              >
-                Add account
-              </Button>
-            ) : undefined
+            <Button
+              onClick={guard(() => {
+                setEditing(null);
+                setOpen(true);
+              })}
+            >
+              Add account
+            </Button>
           }
         />
       ) : (
@@ -420,15 +417,13 @@ export function SavingsView({
 
                   {!isTemp ? (
                     <div className="mt-auto flex items-center gap-2 border-t border-border pt-3">
-                      {canWrite ? (
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => setReconciling(row)}
-                        >
-                          Set actual balance
-                        </Button>
-                      ) : null}
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={guard(() => setReconciling(row))}
+                      >
+                        Set actual balance
+                      </Button>
                       <button
                         type="button"
                         onClick={() => setExpandedLog(logOpen ? null : row.id)}
@@ -437,36 +432,34 @@ export function SavingsView({
                       >
                         {logOpen ? "Hide log" : `Log${log.length ? ` · ${log.length}` : ""}`}
                       </button>
-                      {canWrite && multipleAccounts ? (
+                      {multipleAccounts ? (
                         <button
                           type="button"
-                          onClick={() => openTransfer(row.id)}
+                          onClick={guard(() => openTransfer(row.id))}
                           className="rounded-sm px-2 py-1 text-xs text-text-muted transition hover:bg-surface-hover hover:text-text"
                         >
                           Transfer
                         </button>
                       ) : null}
-                      {canWrite ? (
-                        <div className="ml-auto flex items-center gap-1 opacity-0 transition group-hover:opacity-100">
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setEditing(row);
-                              setOpen(true);
-                            }}
-                            className="rounded-sm px-2 py-1 text-xs text-text-muted transition hover:bg-surface-hover hover:text-text"
-                          >
-                            Edit
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => remove(row)}
-                            className="rounded-sm px-2 py-1 text-xs text-text-muted transition hover:bg-surface-hover hover:text-neg"
-                          >
-                            Remove
-                          </button>
-                        </div>
-                      ) : null}
+                      <div className="ml-auto flex items-center gap-1 opacity-0 transition group-hover:opacity-100">
+                        <button
+                          type="button"
+                          onClick={guard(() => {
+                            setEditing(row);
+                            setOpen(true);
+                          })}
+                          className="rounded-sm px-2 py-1 text-xs text-text-muted transition hover:bg-surface-hover hover:text-text"
+                        >
+                          Edit
+                        </button>
+                        <button
+                          type="button"
+                          onClick={guard(() => remove(row))}
+                          className="rounded-sm px-2 py-1 text-xs text-text-muted transition hover:bg-surface-hover hover:text-neg"
+                        >
+                          Remove
+                        </button>
+                      </div>
                     </div>
                   ) : null}
 
@@ -532,10 +525,10 @@ export function SavingsView({
                           </p>
                         ) : null}
                       </div>
-                      {canWrite && !isTemp ? (
+                      {!isTemp ? (
                         <button
                           type="button"
-                          onClick={() => removeTransfer(t)}
+                          onClick={guard(() => removeTransfer(t))}
                           className="rounded-sm px-2 py-1 text-xs text-text-muted opacity-0 transition hover:bg-surface-hover hover:text-neg group-hover:opacity-100"
                         >
                           Undo

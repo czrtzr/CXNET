@@ -24,12 +24,12 @@ import { Input } from "@/components/ui/Input";
 import { Amount } from "@/components/ui/Amount";
 import { CountUp } from "@/components/ui/CountUp";
 import { WaxSeal } from "@/components/svg/WaxSeal";
-import { useToast } from "@/components/ui/Toast";
+import { useToast, useDemoGuard } from "@/components/ui/Toast";
 import { PriceChart } from "./PriceChart";
 import { RangeBar } from "./RangeBar";
 
 function compact(value: number | null, currency: string): string {
-  if (value == null) return "—";
+  if (value == null) return "-";
   if (Math.abs(value) >= 1000) {
     return `${currency} ${new Intl.NumberFormat("en-US", { notation: "compact", maximumFractionDigits: 2 }).format(value)}`;
   }
@@ -67,6 +67,7 @@ export function PositionDetail({
   onRemove: () => void;
 }) {
   const { toast } = useToast();
+  const guard = useDemoGuard(canWrite);
   const [quote, setQuote] = useState<Quote | null>(null);
   const [quoteLoading, setQuoteLoading] = useState(false);
   const [points, setPoints] = useState<Candle[]>([]);
@@ -253,7 +254,7 @@ export function PositionDetail({
                     {formatPercent(quote.changePct, { signed: true })}
                   </span>
                 ) : (
-                  "—"
+                  "-"
                 )}
               </Stat>
               <Stat label="Dividend">
@@ -261,13 +262,13 @@ export function PositionDetail({
                   ? `${formatCurrency(quote.dividendRate, investment.currency)}${quote.dividendYield != null ? ` · ${formatPercent(quote.dividendYield)}` : ""}`
                   : "None"}
               </Stat>
-              <Stat label="Ex dividend">{quote?.exDividend ?? "—"}</Stat>
+              <Stat label="Ex dividend">{quote?.exDividend ?? "-"}</Stat>
               <Stat label="P / E">
-                {quote?.peRatio != null ? formatNumber(quote.peRatio, 1) : "—"}
+                {quote?.peRatio != null ? formatNumber(quote.peRatio, 1) : "-"}
               </Stat>
               <Stat label="Market cap">{compact(quote?.marketCap ?? null, investment.currency)}</Stat>
               <Stat label="Volume">
-                {quote?.volume != null ? formatNumber(quote.volume, 0) : "—"}
+                {quote?.volume != null ? formatNumber(quote.volume, 0) : "-"}
               </Stat>
             </div>
             {quoteLoading ? (
@@ -283,21 +284,20 @@ export function PositionDetail({
           <Stat label="Current price">
             {investment.current_price != null
               ? formatCurrency(investment.current_price, investment.currency)
-              : "—"}
+              : "-"}
           </Stat>
           <Stat label="Value">{formatCurrency(value, investment.currency)}</Stat>
         </div>
 
         {/* Controls */}
-        {canWrite ? (
-          <div className="flex flex-col gap-4 border-t border-border pt-4">
+        <div className="flex flex-col gap-4 border-t border-border pt-4">
             <div className="flex items-center gap-2">
-              <Button type="button" variant="outline" size="sm" onClick={onEdit}>
+              <Button type="button" variant="outline" size="sm" onClick={guard(onEdit)}>
                 Edit position
               </Button>
               <button
                 type="button"
-                onClick={onRemove}
+                onClick={guard(onRemove)}
                 className="rounded-sm px-2 py-1 text-xs text-text-muted transition hover:text-neg"
               >
                 Remove
@@ -319,11 +319,11 @@ export function PositionDetail({
                     onChange={(e) => setManualInput(e.target.value)}
                   />
                 </div>
-                <Button type="button" variant="outline" onClick={pinPrice} disabled={pending}>
+                <Button type="button" variant="outline" onClick={guard(pinPrice)} disabled={pending}>
                   Pin
                 </Button>
                 {investment.price_is_manual ? (
-                  <Button type="button" variant="ghost" onClick={resume} disabled={pending}>
+                  <Button type="button" variant="ghost" onClick={guard(resume)} disabled={pending}>
                     Resume live
                   </Button>
                 ) : null}
@@ -346,8 +346,8 @@ export function PositionDetail({
                 </div>
                 <button
                   type="button"
-                  onClick={bookReconcile}
-                  disabled={pending || actual == null || Number.isNaN(actual) || diff === 0}
+                  onClick={guard(bookReconcile)}
+                  disabled={pending || (canWrite && (actual == null || Number.isNaN(actual) || diff === 0))}
                   className="flex items-center gap-2 rounded-sm bg-red px-3 py-2.5 text-sm text-text transition hover:bg-red-bright disabled:cursor-not-allowed disabled:opacity-50"
                 >
                   <WaxSeal size={24} />
@@ -374,7 +374,6 @@ export function PositionDetail({
               />
             </div>
           </div>
-        ) : null}
       </div>
     </Modal>
   );

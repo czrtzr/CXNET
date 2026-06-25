@@ -1,4 +1,4 @@
--- CXNET — schema
+-- CXNET - schema
 -- Tables, enums, helper functions, and triggers. Row Level Security is enabled
 -- and policed in the next migration (0002_rls_policies.sql).
 
@@ -23,7 +23,7 @@ create domain public.currency_code as char(3)
   check (value ~ '^[A-Z]{3}$');
 
 -- ---------------------------------------------------------------------------
--- profiles — one row per auth user, created automatically on signup.
+-- profiles - one row per auth user, created automatically on signup.
 -- ---------------------------------------------------------------------------
 create table public.profiles (
   id            uuid primary key references auth.users (id) on delete cascade,
@@ -39,7 +39,7 @@ create table public.profiles (
 );
 
 -- ---------------------------------------------------------------------------
--- allowlist — gates registration. An email here may create exactly one account
+-- allowlist - gates registration. An email here may create exactly one account
 -- (auth.users enforces email uniqueness, so one account per email is implicit).
 -- ---------------------------------------------------------------------------
 create table public.allowlist (
@@ -51,7 +51,7 @@ create table public.allowlist (
 );
 
 -- ---------------------------------------------------------------------------
--- categories — preset rows have user_id null and are readable by everyone.
+-- categories - preset rows have user_id null and are readable by everyone.
 -- ---------------------------------------------------------------------------
 create table public.categories (
   id      uuid primary key default gen_random_uuid(),
@@ -133,7 +133,7 @@ create table public.savings (
 );
 
 -- ---------------------------------------------------------------------------
--- reconciliations — audit trail of every manual balance set, across any
+-- reconciliations - audit trail of every manual balance set, across any
 -- account or position. delta is the miscellaneous difference booked when a
 -- tracked value was corrected to the real one.
 -- ---------------------------------------------------------------------------
@@ -154,7 +154,7 @@ create table public.reconciliations (
 );
 
 -- ---------------------------------------------------------------------------
--- balance_history — net worth snapshots in the user's base currency.
+-- balance_history - net worth snapshots in the user's base currency.
 -- ---------------------------------------------------------------------------
 create table public.balance_history (
   id          uuid primary key default gen_random_uuid(),
@@ -166,7 +166,7 @@ create table public.balance_history (
 );
 
 -- ---------------------------------------------------------------------------
--- fx_rates — shared, cached daily conversion table. Not user scoped.
+-- fx_rates - shared, cached daily conversion table. Not user scoped.
 -- ---------------------------------------------------------------------------
 create table public.fx_rates (
   base        public.currency_code not null,
@@ -177,7 +177,7 @@ create table public.fx_rates (
 );
 
 -- ---------------------------------------------------------------------------
--- audit_log — admin actions and auth events.
+-- audit_log - admin actions and auth events.
 -- ---------------------------------------------------------------------------
 create table public.audit_log (
   id         uuid primary key default gen_random_uuid(),
@@ -189,7 +189,7 @@ create table public.audit_log (
 );
 
 -- ---------------------------------------------------------------------------
--- Indexes — every user scoped table gets a user_id index, plus common sorts.
+-- Indexes - every user scoped table gets a user_id index, plus common sorts.
 -- ---------------------------------------------------------------------------
 create index idx_income_user        on public.income (user_id, date desc);
 create index idx_expenses_user      on public.expenses (user_id, date desc);

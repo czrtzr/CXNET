@@ -4,6 +4,7 @@ import { useState } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import type { DebtPayment } from "@/types";
 import { Amount } from "@/components/ui/Amount";
+import { useDemoGuard } from "@/components/ui/Toast";
 
 const MONTHS = [
   "Jan", "Feb", "Mar", "Apr", "May", "Jun",
@@ -34,6 +35,7 @@ export function PaymentHistory({
   onRemove: (payment: DebtPayment) => void;
 }) {
   const [open, setOpen] = useState(false);
+  const guard = useDemoGuard(canWrite);
   if (payments.length === 0) return null;
 
   const total = payments.reduce((sum, p) => sum + Number(p.amount), 0);
@@ -87,10 +89,10 @@ export function PaymentHistory({
                     </div>
                     <div className="flex shrink-0 items-center gap-2">
                       <Amount value={Number(p.amount)} currency={currency} tone="plain" className="text-text" />
-                      {canWrite && !isTemp ? (
+                      {!isTemp ? (
                         <button
                           type="button"
-                          onClick={() => onRemove(p)}
+                          onClick={guard(() => onRemove(p))}
                           className="rounded-sm px-1.5 py-0.5 text-text-faint opacity-0 transition hover:text-neg group-hover/payment:opacity-100"
                           aria-label="Remove payment"
                         >

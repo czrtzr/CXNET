@@ -21,7 +21,7 @@ import { convertToBase } from "@/lib/finance/currencies";
 import { Amount } from "@/components/ui/Amount";
 import { Button } from "@/components/ui/Button";
 import { Modal } from "@/components/ui/Modal";
-import { useToast } from "@/components/ui/Toast";
+import { useToast, useDemoGuard } from "@/components/ui/Toast";
 import { RuleForm } from "./RuleForm";
 
 type Optimistic =
@@ -46,7 +46,7 @@ function numeric(value: number | string): number {
 }
 
 // The recurring rules for one screen (income or expense): a collapsed summary
-// that opens to a managed list. Self-contained — owns its own optimistic state
+// that opens to a managed list. Self-contained - owns its own optimistic state
 // and talks to the rule actions directly.
 export function RecurringRulesPanel({
   rules,
@@ -73,6 +73,7 @@ export function RecurringRulesPanel({
   const [formOpen, setFormOpen] = useState(false);
   const [editing, setEditing] = useState<RecurringRule | null>(null);
   const { toast } = useToast();
+  const guard = useDemoGuard(canWrite);
 
   const noun = kind === "income" ? "income" : "expenses";
 
@@ -161,15 +162,13 @@ export function RecurringRulesPanel({
   return (
     <>
       {optimistic.length === 0 ? (
-        canWrite ? (
-          <button
-            type="button"
-            onClick={openAdd}
-            className="mt-6 flex w-full items-center justify-center gap-2 rounded-sm border border-dashed border-border px-4 py-3 text-sm text-text-muted transition hover:border-border-strong hover:text-text"
-          >
-            + Add recurring {noun}
-          </button>
-        ) : null
+        <button
+          type="button"
+          onClick={guard(openAdd)}
+          className="mt-6 flex w-full items-center justify-center gap-2 rounded-sm border border-dashed border-border px-4 py-3 text-sm text-text-muted transition hover:border-border-strong hover:text-text"
+        >
+          + Add recurring {noun}
+        </button>
       ) : (
         <div className="mt-6 overflow-hidden rounded-sm border border-border bg-surface">
           <div className="flex items-center justify-between gap-3 px-4 py-3">
@@ -203,11 +202,9 @@ export function RecurringRulesPanel({
                 {" / mo"}
               </span>
             </button>
-            {canWrite ? (
-              <Button size="sm" variant="outline" onClick={openAdd}>
-                Add
-              </Button>
-            ) : null}
+            <Button size="sm" variant="outline" onClick={guard(openAdd)}>
+              Add
+            </Button>
           </div>
 
           <AnimatePresence initial={false}>
@@ -243,28 +240,28 @@ export function RecurringRulesPanel({
                           currency={rule.currency}
                           className="text-sm"
                         />
-                        {canWrite && !isTemp ? (
+                        {!isTemp ? (
                           <div className="flex items-center gap-1 opacity-0 transition group-hover:opacity-100">
                             <button
                               type="button"
-                              onClick={() => setActive(rule, !rule.active)}
+                              onClick={guard(() => setActive(rule, !rule.active))}
                               className="rounded-sm px-2 py-1 text-xs text-text-muted transition hover:bg-surface-hover hover:text-text"
                             >
                               {rule.active ? "Pause" : "Resume"}
                             </button>
                             <button
                               type="button"
-                              onClick={() => {
+                              onClick={guard(() => {
                                 setEditing(rule);
                                 setFormOpen(true);
-                              }}
+                              })}
                               className="rounded-sm px-2 py-1 text-xs text-text-muted transition hover:bg-surface-hover hover:text-text"
                             >
                               Edit
                             </button>
                             <button
                               type="button"
-                              onClick={() => remove(rule)}
+                              onClick={guard(() => remove(rule))}
                               className="rounded-sm px-2 py-1 text-xs text-text-muted transition hover:bg-surface-hover hover:text-neg"
                             >
                               Remove

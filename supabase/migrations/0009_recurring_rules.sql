@@ -1,8 +1,8 @@
--- CXNET — recurring rules
+-- CXNET - recurring rules
 -- A rule is a template that generates real income/expense entries on a cadence.
 -- Generation happens at read time (a catch-up pass on the money screens), so a
 -- rule whose next run has passed materializes concrete, dated entries that post
--- to balances exactly like any manual one — no separate "projected" accounting.
+-- to balances exactly like any manual one - no separate "projected" accounting.
 -- The generated entries carry recurring_rule_id back to their rule.
 
 create table public.recurring_rules (

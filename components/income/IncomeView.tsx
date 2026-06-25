@@ -14,7 +14,7 @@ import { Amount } from "@/components/ui/Amount";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { Modal } from "@/components/ui/Modal";
-import { useToast } from "@/components/ui/Toast";
+import { useToast, useDemoGuard } from "@/components/ui/Toast";
 import { PageTransition } from "@/components/layout/PageTransition";
 import { AnimatedList, AnimatedItem } from "@/components/motion/AnimatedList";
 import { DrawUnderline } from "@/components/svg/DrawUnderline";
@@ -22,6 +22,12 @@ import { PulseLine } from "@/components/svg/PulseLine";
 import { EmptyState } from "@/components/finance/EmptyState";
 import { ChangeView } from "@/components/finance/ChangeView";
 import { RecurringRulesPanel } from "@/components/finance/RecurringRulesPanel";
+import { FilterBar } from "@/components/finance/FilterBar";
+import {
+  EMPTY_FILTERS,
+  matchesFilters,
+  type EntryFilters,
+} from "@/lib/finance/filters";
 import { IncomeForm } from "./IncomeForm";
 
 type Props = {
@@ -62,9 +68,32 @@ export function IncomeView({
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<Income | null>(null);
   const { toast } = useToast();
+  const guard = useDemoGuard(canWrite);
+  const [filters, setFilters] = useState<EntryFilters>(EMPTY_FILTERS);
 
   const categoryMap = new Map(categories.map((c) => [c.id, c]));
   const accountMap = new Map(accounts.map((a) => [a.id, a]));
+
+  // Only categories and accounts that the entries actually use, plus an "all"
+  // entry, so the dropdowns never offer a choice that filters to nothing.
+  const usedCategoryIds = new Set(rows.map((r) => r.category_id).filter(Boolean));
+  const usedAccountIds = new Set(rows.map((r) => r.account_id).filter(Boolean));
+  const categoryOptions = [
+    { value: "", label: "All categories" },
+    ...categories
+      .filter((c) => usedCategoryIds.has(c.id))
+      .map((c) => ({ value: c.id, label: c.name })),
+  ];
+  const accountOptions = [
+    { value: "", label: "All accounts" },
+    ...accounts
+      .filter((a) => usedAccountIds.has(a.id))
+      .map((a) => ({ value: a.id, label: a.account_name, hint: a.currency })),
+  ];
+
+  const filtered = optimistic.filter((r) =>
+    matchesFilters(r, filters, (row) => row.source),
+  );
 
   // Monthly equivalent of recurring income, summed from the active rules.
   let monthlyTotal = 0;
@@ -154,16 +183,14 @@ export function IncomeView({
           <p className="mt-2 text-xs text-text-muted">Monthly equivalent</p>
         </div>
         <div className="flex flex-col items-end gap-3">
-          {canWrite ? (
-            <Button
-              onClick={() => {
-                setEditing(null);
-                setOpen(true);
-              }}
-            >
-              Add income
-            </Button>
-          ) : null}
+          <Button
+            onClick={guard(() => {
+              setEditing(null);
+              setOpen(true);
+            })}
+          >
+            Add income
+          </Button>
           <PulseLine
             width={140}
             height={30}
@@ -187,26 +214,39 @@ export function IncomeView({
         canWrite={canWrite}
       />
 
+      {optimistic.length > 0 ? (
+        <FilterBar
+          filters={filters}
+          onChange={setFilters}
+          categoryOptions={categoryOptions}
+          accountOptions={accountOptions}
+          searchPlaceholder="Search by source or note"
+        />
+      ) : null}
+
       {optimistic.length === 0 ? (
         <EmptyState
           title="No income yet"
           hint="Add a salary, a client, or any recurring source to see your monthly figure take shape."
           action={
-            canWrite ? (
-              <Button
-                onClick={() => {
-                  setEditing(null);
-                  setOpen(true);
-                }}
-              >
-                Add income
-              </Button>
-            ) : undefined
+            <Button
+              onClick={guard(() => {
+                setEditing(null);
+                setOpen(true);
+              })}
+            >
+              Add income
+            </Button>
           }
         />
+      ) : filtered.length === 0 ? (
+        <EmptyState
+          title="No matches"
+          hint="No income fits these filters. Try widening the range or clearing them."
+        />
       ) : (
-        <AnimatedList className="mt-8 flex flex-col gap-2">
-          {optimistic.map((row) => {
+        <AnimatedList className="mt-4 flex flex-col gap-2">
+          {filtered.map((row) => {
             const isTemp = row.id.startsWith("temp-");
             return (
               <AnimatedItem key={row.id}>
@@ -251,21 +291,21 @@ export function IncomeView({
                       />
                     </div>
 
-                    {canWrite && !isTemp ? (
+                    {!isTemp ? (
                       <div className="flex items-center gap-1 opacity-0 transition group-hover:opacity-100">
                         <button
                           type="button"
-                          onClick={() => {
+                          onClick={guard(() => {
                             setEditing(row);
                             setOpen(true);
-                          }}
+                          })}
                           className="rounded-sm px-2 py-1 text-xs text-text-muted transition hover:bg-surface-hover hover:text-text"
                         >
                           Edit
                         </button>
                         <button
                           type="button"
-                          onClick={() => remove(row)}
+                          onClick={guard(() => remove(row))}
                           className="rounded-sm px-2 py-1 text-xs text-text-muted transition hover:bg-surface-hover hover:text-neg"
                         >
                           Remove

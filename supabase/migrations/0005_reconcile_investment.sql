@@ -1,4 +1,4 @@
--- CXNET — atomic investment reconciliation
+-- CXNET - atomic investment reconciliation
 -- Mirrors reconcile_savings for positions. The tracked value of a position is
 -- shares * current_price; "set actual value" books the gap to reconciliations
 -- and snaps the position to the actual by pinning a manual price (actual /

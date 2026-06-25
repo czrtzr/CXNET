@@ -11,7 +11,7 @@ import {
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { SelectMenu } from "@/components/ui/SelectMenu";
-import { useToast } from "@/components/ui/Toast";
+import { useToast, useDemoGuard } from "@/components/ui/Toast";
 import { PageTransition } from "@/components/layout/PageTransition";
 import { Reveal } from "@/components/motion/Reveal";
 import { PulseLine } from "@/components/svg/PulseLine";
@@ -42,6 +42,7 @@ export function SettingsView({
   const [saved, setSaved] = useState(base);
   const [pending, start] = useTransition();
   const { toast } = useToast();
+  const guard = useDemoGuard(canWrite);
 
   const dirty = choice !== saved;
 
@@ -138,13 +139,9 @@ export function SettingsView({
             <p className="mt-2 text-xs text-text-faint">{currencyName(choice)}</p>
           </div>
 
-          {canWrite ? (
-            <Button onClick={save} disabled={!dirty || pending}>
-              {pending ? "Saving" : "Save"}
-            </Button>
-          ) : (
-            <p className="text-xs text-text-faint">The demo account is read only.</p>
-          )}
+          <Button onClick={guard(save)} disabled={pending || (canWrite && !dirty)}>
+            {pending ? "Saving" : "Save"}
+          </Button>
         </div>
         </Card>
       </Reveal>
@@ -184,18 +181,12 @@ export function SettingsView({
             </div>
 
             <div className="mt-5 flex justify-end">
-              {canWrite ? (
-                <Button
-                  onClick={saveAccounts}
-                  disabled={!accountsDirty || accountsPending}
-                >
-                  {accountsPending ? "Saving" : "Save"}
-                </Button>
-              ) : (
-                <p className="text-xs text-text-faint">
-                  The demo account is read only.
-                </p>
-              )}
+              <Button
+                onClick={guard(saveAccounts)}
+                disabled={accountsPending || (canWrite && !accountsDirty)}
+              >
+                {accountsPending ? "Saving" : "Save"}
+              </Button>
             </div>
           </>
         )}

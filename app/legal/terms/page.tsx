@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { Section, P, List, LI, Term } from "@/components/legal/prose";
 
 export const metadata: Metadata = {
-  title: "Terms of Service — CXNET",
+  title: "Terms of Service",
   description: "The terms that govern your use of CXNET.",
 };
 

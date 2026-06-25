@@ -1,4 +1,4 @@
--- CXNET — income categories
+-- CXNET - income categories
 -- Income gains an optional category, mirroring expenses. Income presets already
 -- exist in categories (kind = 'income'); this wires a row to one. Deleting a
 -- custom category nulls the reference rather than removing the income entry.

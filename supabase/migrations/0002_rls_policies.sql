@@ -1,4 +1,4 @@
--- CXNET — Row Level Security
+-- CXNET - Row Level Security
 -- RLS is enabled on every table. The governing rule: a user sees and touches
 -- only their own rows. Presets (categories.user_id is null) and the shared FX
 -- cache are the only cross user reads. Guests are strictly read only. The
@@ -46,7 +46,7 @@ create policy "profiles: update own or super admin"
 -- No DELETE policy: accounts are deactivated, never hard deleted.
 
 -- ===========================================================================
--- allowlist — super admin only, in every direction.
+-- allowlist - super admin only, in every direction.
 -- ===========================================================================
 create policy "allowlist: super admin reads"
   on public.allowlist for select using (public.is_super_admin());
@@ -58,7 +58,7 @@ create policy "allowlist: super admin deletes"
   on public.allowlist for delete using (public.is_super_admin());
 
 -- ===========================================================================
--- categories — own rows plus shared presets (user_id is null).
+-- categories - own rows plus shared presets (user_id is null).
 -- ===========================================================================
 create policy "categories: read own and presets"
   on public.categories for select
@@ -141,7 +141,7 @@ create policy "balance_history: insert own" on public.balance_history for insert
   with check (user_id = auth.uid() and not public.is_guest());
 
 -- ===========================================================================
--- fx_rates — shared read for any signed in user. Writes happen only through
+-- fx_rates - shared read for any signed in user. Writes happen only through
 -- the service role (the cached rate job), which bypasses RLS, so there is no
 -- write policy here.
 -- ===========================================================================
@@ -150,7 +150,7 @@ create policy "fx_rates: authenticated read"
   using (auth.uid() is not null);
 
 -- ===========================================================================
--- audit_log — super admin reads. Writes go through the service role or
+-- audit_log - super admin reads. Writes go through the service role or
 -- SECURITY DEFINER functions, so no insert policy is exposed to clients.
 -- ===========================================================================
 create policy "audit_log: super admin reads"

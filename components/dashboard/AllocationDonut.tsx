@@ -31,6 +31,9 @@ const R = 56;
 const STROKE = 22;
 const SIZE = 150;
 const C = 2 * Math.PI * R;
+// The clear hole in the middle of the ring. The center readout must live inside
+// this width or it bleeds over the ring, so it is the cap for label and value.
+const INNER = 2 * (R - STROKE / 2);
 
 export function AllocationDonut({
   segments,
@@ -96,16 +99,27 @@ export function AllocationDonut({
             />
           ))}
         </svg>
-        {/* Center readout: hovered slice, or the whole portfolio. */}
-        <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center text-center">
-          <p className="text-[10px] uppercase tracking-[0.14em] text-text-faint">
-            {focus ? focus.label : "Total"}
-          </p>
-          <p className={cn("mt-0.5 text-sm tabular-nums text-text", !focus && quiet && "select-none blur-sm")}>
-            {focus
-              ? formatPercent((focus.value / total) * 100, { decimals: 0 })
-              : formatCurrency(total, currency)}
-          </p>
+        {/* Center readout: hovered slice, or the whole portfolio. Capped to the
+            ring's inner hole so long labels and amounts never spill over it. */}
+        <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
+          <div
+            className="flex flex-col items-center px-1 text-center"
+            style={{ width: INNER }}
+          >
+            <p className="w-full truncate text-[10px] uppercase tracking-[0.14em] text-text-faint">
+              {focus ? focus.label : "Total"}
+            </p>
+            <p
+              className={cn(
+                "mt-0.5 w-full truncate text-[13px] tabular-nums text-text",
+                !focus && quiet && "select-none blur-sm",
+              )}
+            >
+              {focus
+                ? formatPercent((focus.value / total) * 100, { decimals: 0 })
+                : formatCurrency(total, currency)}
+            </p>
+          </div>
         </div>
       </div>
 

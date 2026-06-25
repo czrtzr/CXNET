@@ -83,9 +83,11 @@ export async function proxy(request: NextRequest) {
 }
 
 export const config = {
-  // Run on everything except Next internals and static assets, so auth logic
-  // never blocks CSS, JS, images, or the favicon from loading.
+  // Run on everything except Next internals, static assets, and the public
+  // metadata routes (favicon, icons, OG/twitter images, manifest, robots). Those
+  // must stay reachable without a session so the login page renders its icons and
+  // external crawlers and link unfurlers can fetch them.
   matcher: [
-    "/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico|woff2?)$).*)",
+    "/((?!_next/static|_next/image|favicon.ico|apple-icon|opengraph-image|twitter-image|manifest.webmanifest|robots.txt|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico|woff2?)$).*)",
   ],
 };

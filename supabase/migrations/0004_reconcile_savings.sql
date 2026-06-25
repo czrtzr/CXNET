@@ -1,4 +1,4 @@
--- CXNET — atomic savings reconciliation
+-- CXNET - atomic savings reconciliation
 -- The "set actual balance" flow must book the adjustment and move the balance
 -- together or not at all. Doing it as two client calls leaves a window where
 -- one lands and the other fails. This function does both in a single

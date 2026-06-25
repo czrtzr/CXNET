@@ -1,6 +1,6 @@
-# CXNET — Claude Code Build Prompt
+# CXNET - Claude Code Build Prompt
 
-> A private, invite-only **wealth command center**. Not a budgeting app — a personal financial instrument with the gravitas of a private members' bank and the precision of a trading terminal. The codename and the brand are the same: **CXNET**.
+> A private, invite-only **wealth command center**. Not a budgeting app - a personal financial instrument with the gravitas of a private members' bank and the precision of a trading terminal. The codename and the brand are the same: **CXNET**.
 
 ---
 
@@ -42,23 +42,23 @@ Treat every decision as a product decision, not just a coding decision. A beauti
 
 ---
 
-## Design System — Non-Negotiable
+## Design System - Non-Negotiable
 
 The most important part. Every component must feel intentional, quiet, and expensive.
 
-**Aesthetic.** Dark luxury. The feeling of opening a leather-bound ledger on a walnut desk in a dim study — oxblood leather, brass hardware, crimson wax, engraved banknote line-work — fused with a modern trading terminal: monospace tickers, hairline grids, live data. Deep warm near-black (never cold blue-black). Square corners (border-radius ≤ 4px — never rounded cards). Thin precise borders at ~8% warm-white opacity. Grid-aligned layouts, generous whitespace, everything on an 8px grid.
+**Aesthetic.** Dark luxury. The feeling of opening a leather-bound ledger on a walnut desk in a dim study - oxblood leather, brass hardware, crimson wax, engraved banknote line-work - fused with a modern trading terminal: monospace tickers, hairline grids, live data. Deep warm near-black (never cold blue-black). Square corners (border-radius ≤ 4px - never rounded cards). Thin precise borders at ~8% warm-white opacity. Grid-aligned layouts, generous whitespace, everything on an 8px grid.
 
 **Color tokens** (define once in Tailwind config + CSS variables; nothing ad hoc):
 
 ```
---bg-deep        #0a0807   /* warm near-black, faint brown cast — not cold */
+--bg-deep        #0a0807   /* warm near-black, faint brown cast - not cold */
 --surface        #15120f   /* dark grey-brown */
 --surface-raised #1d1813
 --surface-hover  #251f19
 --border         rgba(233,214,190,0.08)   /* warm hairline */
 --border-strong  rgba(233,214,190,0.14)
 
---red            #7a1620   /* deep oxblood — primary interactive accent */
+--red            #7a1620   /* deep oxblood - primary interactive accent */
 --red-bright     #9b2230   /* hover / focus glow */
 --red-deep       #4d0e15   /* pressed / ambient */
 
@@ -66,17 +66,17 @@ The most important part. Every component must feel intentional, quiet, and expen
 --leather-light  #7a5234
 --leather-deep   #3a2415
 
---brass          #b08d57   /* OPTIONAL metallic — engraving hairlines & wax-seal rims only, used sparingly */
+--brass          #b08d57   /* OPTIONAL metallic - engraving hairlines & wax-seal rims only, used sparingly */
 
 --text           #f1ece4   /* warm white, never pure white */
 --text-muted     rgba(241,236,228,0.45)
 --text-faint     rgba(241,236,228,0.28)
 
---pos            #5f8b6a   /* gains — muted sage, never neon green */
---neg            #9b2230   /* losses — reuse oxblood */
+--pos            #5f8b6a   /* gains - muted sage, never neon green */
+--neg            #9b2230   /* losses - reuse oxblood */
 ```
 
-Oxblood red is the **primary interactive accent** (buttons, active states, focus glow, losses). Leather is structural/decorative (frames, dividers, certificate borders, category accents). Brass is a restrained metallic reserved for engraved line-art and wax-seal rims — use it like real gold leaf: rarely.
+Oxblood red is the **primary interactive accent** (buttons, active states, focus glow, losses). Leather is structural/decorative (frames, dividers, certificate borders, category accents). Brass is a restrained metallic reserved for engraved line-art and wax-seal rims - use it like real gold leaf: rarely.
 
 **Typography.** Private bank direction.
 - Headings and large balances: a refined serif (Fraunces or Newsreader), tight tracking, tabular figures. The hero of every screen.
@@ -88,7 +88,7 @@ Oxblood red is the **primary interactive accent** (buttons, active states, focus
 - Page transitions: coordinated fade + translate, children stagger in.
 - Numbers: count-up on mount and on change.
 - Charts: draw in on load.
-- Hover: subtle glow or border brightening — never jarring.
+- Hover: subtle glow or border brightening - never jarring.
 - Inputs: lift slightly on focus with an oxblood border glow.
 - Toasts: slide up from bottom-right, auto-dismiss with a progress bar.
 - All of the above degrade to instant final state under `prefers-reduced-motion`.
@@ -99,28 +99,28 @@ Oxblood red is the **primary interactive accent** (buttons, active states, focus
 
 ---
 
-## The Ornamental SVG System — the Signature
+## The Ornamental SVG System - the Signature
 
 The visual language of money is vector engraving. SVG is the brand, not decoration. Build a small set of reusable SVG primitives and use them with restraint and consistency.
 
-1. **Guilloché engine** — a procedural SVG generator producing rosette/rope/spirograph line-work (the engraving on banknotes & stock certificates). Parameterized (node count, amplitude, radius, color, opacity). Reused as: login background (slow drift), card watermark behind hero numbers, statement borders, and empty-state art. Always low-opacity, brass or leather lines on near-black.
-2. **Crest + monogram** — an engraved SVG mark for CXNET. Drives the logo lockup, favicon, the wax seal, and the loading indicator.
-3. **Wax-seal confirmations** — a meaningful action (confirm a transaction, add someone to the allowlist) stamps an animated SVG wax seal bearing the crest, with a soft press + settle. Reduced-motion: appears instantly.
-4. **Vault-open transition** — first paint after login plays like a safe door / ledger cover opening: an SVG mask wipe with an oxblood sweep revealing the dashboard.
-5. **Stock-certificate header** — the net-worth hero sits in an engraved frame with filigree corners and a count-up numeral, like the header of a share certificate.
-6. **Bespoke SVG charts** — hand-built:
+1. **Guilloché engine** - a procedural SVG generator producing rosette/rope/spirograph line-work (the engraving on banknotes & stock certificates). Parameterized (node count, amplitude, radius, color, opacity). Reused as: login background (slow drift), card watermark behind hero numbers, statement borders, and empty-state art. Always low-opacity, brass or leather lines on near-black.
+2. **Crest + monogram** - an engraved SVG mark for CXNET. Drives the logo lockup, favicon, the wax seal, and the loading indicator.
+3. **Wax-seal confirmations** - a meaningful action (confirm a transaction, add someone to the allowlist) stamps an animated SVG wax seal bearing the crest, with a soft press + settle. Reduced-motion: appears instantly.
+4. **Vault-open transition** - first paint after login plays like a safe door / ledger cover opening: an SVG mask wipe with an oxblood sweep revealing the dashboard.
+5. **Stock-certificate header** - the net-worth hero sits in an engraved frame with filigree corners and a count-up numeral, like the header of a share certificate.
+6. **Bespoke SVG charts** - hand-built:
    - *Net-worth area/line*: gradient fill, draw-in path, a "comet" dot leading the latest point, animated value label.
    - *Allocation & spending donuts*: animated arc draw-in, conic/segmented gradients, center total count-up.
-7. **Engraved icon family** — one consistent thin-stroke SVG icon set (no mixing icon libraries).
-8. **Grain + vignette** — an SVG noise filter overlay + radial vignette so the near-black has depth and never looks flat.
-9. **Admission certificate** — on first login, a new account is greeted with an embossed, wax-sealed certificate: "You have been admitted to CXNET," before entering their fresh ledger.
+7. **Engraved icon family** - one consistent thin-stroke SVG icon set (no mixing icon libraries).
+8. **Grain + vignette** - an SVG noise filter overlay + radial vignette so the near-black has depth and never looks flat.
+9. **Admission certificate** - on first login, a new account is greeted with an embossed, wax-sealed certificate: "You have been admitted to CXNET," before entering their fresh ledger.
 
 ---
 
-## Security — Production Grade
+## Security - Production Grade
 
 - Supabase Auth for all authentication (email + password, with email confirmation).
-- **Row Level Security on every table** — users see only their own rows, period. Comment each policy clearly.
+- **Row Level Security on every table** - users see only their own rows, period. Comment each policy clearly.
 - Roles in `profiles.role`: `super_admin | user | guest`. The super admin (`feitcarter@gmail.com`) is seeded at setup and cannot be deleted.
 - **Email allowlist registration, no public signup.** The super admin adds an email to an allowlist in admin settings. Only an allowlisted email can create an account. The person goes to the normal login screen, sets a password, and lands in their own fresh ledger. New accounts see a brief quiet welcome on first login. Enforce the allowlist on the server, not just the client.
 - **Guest demo account** is pre-seeded and read only (`guest@cxnet.app` / `GuestDemo2024`), loaded with realistic fake data across every section. Guests cannot create, edit, or delete. A top banner reads: "You are viewing a demo. Sign in to get started." (no em dashes, no hyphens.)
@@ -133,7 +133,7 @@ The visual language of money is vector engraving. SVG is the brand, not decorati
 
 ## Data Model (Supabase / Postgres)
 
-Define these tables with RLS. Adjust names to taste but keep the shape explicit — do not leave the schema to chance.
+Define these tables with RLS. Adjust names to taste but keep the shape explicit - do not leave the schema to chance.
 
 - `profiles`: id (=auth.uid), email, display_name, role, base_currency, avatar_url, is_active, has_onboarded, created_at, last_active_at
 - `allowlist`: id, email, added_by, welcome_email_sent_at, created_at. Gates registration. An email here may create exactly one account.
@@ -155,7 +155,7 @@ Number and currency formatting: one helper for amounts (tabular figures, thin sp
 
 **Auth.** Full screen centered login (crest, email, password) over a slow drifting guilloché background. No public signup. Forgot password flow. An allowlisted email logs in for the first time, sets a password, and is taken into a fresh empty ledger framed like the invite certificate ("You have been admitted to CXNET"), then a brief quiet welcome. A non allowlisted email is refused without leaking whether the address exists.
 
-**Sidebar / Nav.** Crest + name at top. Items: Dashboard, Income, Expenses, Investments, Savings, (Admin — super admin only). Bottom: avatar + name, settings, lock/logout. Active state: oxblood left-border + slightly raised background. A **quiet-mode toggle** here blurs all balances app-wide.
+**Sidebar / Nav.** Crest + name at top. Items: Dashboard, Income, Expenses, Investments, Savings, (Admin - super admin only). Bottom: avatar + name, settings, lock/logout. Active state: oxblood left-border + slightly raised background. A **quiet-mode toggle** here blurs all balances app-wide.
 
 **Dashboard.** Net-worth hero in the certificate header (count-up, assets vs liabilities). Cashflow bar (monthly income vs spend, savings rate). Spending donut. Portfolio-allocation donut. Net-worth-over-time area chart from `balance_history`. Recent-activity feed (last 10 across all categories).
 
@@ -169,7 +169,7 @@ Number and currency formatting: one helper for amounts (tabular figures, thin sp
 
 **Savings.** Form (account, balance, goal, APY, institution, notes). Animated goal-progress fill bar + percentage. Total savings on top.
 
-**Reconcile (manual balance set) — works everywhere.** Every account or position that carries a value (savings, a top level cash position, investments, liabilities, manual assets) has a *tracked value* built from its inputs plus every logged movement. Real life drifts from the ledger, so each one gets a "Set actual balance" action. The person types what it truly holds right now; the app computes the gap against the tracked value and books it as a single labeled adjustment, written to `reconciliations` (a **gain** when the real total is higher, a **shortfall** when it is lower), dated now, with an optional note. The tracked value then equals the actual figure, and the adjustment appears in that account's history, so nothing is ever silently overwritten. The flow:
+**Reconcile (manual balance set) - works everywhere.** Every account or position that carries a value (savings, a top level cash position, investments, liabilities, manual assets) has a *tracked value* built from its inputs plus every logged movement. Real life drifts from the ledger, so each one gets a "Set actual balance" action. The person types what it truly holds right now; the app computes the gap against the tracked value and books it as a single labeled adjustment, written to `reconciliations` (a **gain** when the real total is higher, a **shortfall** when it is lower), dated now, with an optional note. The tracked value then equals the actual figure, and the adjustment appears in that account's history, so nothing is ever silently overwritten. The flow:
   1. Open an account or position, choose **Set actual balance**.
   2. Enter the true total. The dialog previews the difference live ("tracked 4,200.00, actual 4,000.00, books a 200.00 shortfall") before anything is saved.
   3. Confirm with the wax-seal stamp; the adjustment is recorded and the value snaps to the actual.
@@ -231,13 +231,13 @@ Six months of realistic data: 3 income sources (salary, freelance, dividends); 3
 
 Do not build the whole thing then debug at the end. Ship in phases. **At the end of each phase, stop and verify: run the app, fix all type errors, console errors, broken routes, and obvious bugs, and confirm the phase works before starting the next one.** Report what you verified at each checkpoint.
 
-1. **Foundation** — Next 16 + TS + Tailwind scaffold, design tokens, Supabase project, schema + RLS, auth wiring. *Checkpoint: app boots, can log in, RLS blocks cross-user reads.*
-2. **Design primitives** — `/components/ui` and `/components/svg` (Crest, Guilloche, Grain, WaxSeal, CertificateFrame), typography, layout shell (Sidebar, MobileNav, PageTransition). *Checkpoint: a styled empty shell renders on desktop and mobile, reduced-motion respected.*
-3. **Core data screens** — Income, Expenses, Savings (including reconcile / manual balance set with the difference booked to `reconciliations`): forms, lists, optimistic CRUD, empty/loading/error states. *Checkpoint: full CRUD works, a manual balance set books the correct gain or shortfall adjustment and the tracked balance matches the actual, RLS verified, no console errors.*
-4. **Investments + prices** — Yahoo lookup via server handler, cache, offline fallback, position cards. *Checkpoint: lookup + refresh work, failure degrades gracefully.*
-5. **Dashboard + bespoke charts** — net-worth certificate header, custom SVG charts, balance_history, quiet mode. *Checkpoint: charts draw in with real data, count-ups correct.*
-6. **Allowlist + admin + guest seed** — allowlist registration, first login welcome, admin panel, seeded guest demo. *Checkpoint: only allowlisted emails can register, new account sees the welcome once, guest is read only, admin actions logged.*
-7. **Signature polish** — vault-open transition, wax-seal confirmations, guilloché backgrounds, grain/vignette, final accessibility + performance pass. *Checkpoint: full walkthrough on desktop and mobile, no regressions.*
+1. **Foundation** - Next 16 + TS + Tailwind scaffold, design tokens, Supabase project, schema + RLS, auth wiring. *Checkpoint: app boots, can log in, RLS blocks cross-user reads.*
+2. **Design primitives** - `/components/ui` and `/components/svg` (Crest, Guilloche, Grain, WaxSeal, CertificateFrame), typography, layout shell (Sidebar, MobileNav, PageTransition). *Checkpoint: a styled empty shell renders on desktop and mobile, reduced-motion respected.*
+3. **Core data screens** - Income, Expenses, Savings (including reconcile / manual balance set with the difference booked to `reconciliations`): forms, lists, optimistic CRUD, empty/loading/error states. *Checkpoint: full CRUD works, a manual balance set books the correct gain or shortfall adjustment and the tracked balance matches the actual, RLS verified, no console errors.*
+4. **Investments + prices** - Yahoo lookup via server handler, cache, offline fallback, position cards. *Checkpoint: lookup + refresh work, failure degrades gracefully.*
+5. **Dashboard + bespoke charts** - net-worth certificate header, custom SVG charts, balance_history, quiet mode. *Checkpoint: charts draw in with real data, count-ups correct.*
+6. **Allowlist + admin + guest seed** - allowlist registration, first login welcome, admin panel, seeded guest demo. *Checkpoint: only allowlisted emails can register, new account sees the welcome once, guest is read only, admin actions logged.*
+7. **Signature polish** - vault-open transition, wax-seal confirmations, guilloché backgrounds, grain/vignette, final accessibility + performance pass. *Checkpoint: full walkthrough on desktop and mobile, no regressions.*
 
 ---
 

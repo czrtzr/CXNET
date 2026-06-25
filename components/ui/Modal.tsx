@@ -96,7 +96,7 @@ export function Modal({ open, onClose, title, size = "md", children }: ModalProp
     document.body.style.overflow = "hidden";
 
     // Move focus in, but never steal it from an element that already claimed it
-    // (an autoFocus input inside the panel mounts focused — leave it there).
+    // (an autoFocus input inside the panel mounts focused - leave it there).
     if (panel && !panel.contains(document.activeElement)) {
       (focusableWithin(panel)[0] ?? panel).focus();
     }

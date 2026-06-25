@@ -98,7 +98,7 @@ export function DashboardView({
 }: Props) {
   const firstName = displayName.trim().split(/\s+/)[0] || "there";
 
-  // Recurring monthly headroom and what share of income it keeps — the link
+  // Recurring monthly headroom and what share of income it keeps - the link
   // between the income and expense screens, read at a glance.
   const monthlyNet = monthlyIncome - monthlyExpense;
   const savingsRate =

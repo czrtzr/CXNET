@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { Section, P, List, LI, Term } from "@/components/legal/prose";
 
 export const metadata: Metadata = {
-  title: "Privacy Policy — CXNET",
+  title: "Privacy Policy",
   description: "What personal information CXNET collects and how it is used.",
 };
 
@@ -89,18 +89,18 @@ export default function PrivacyPage() {
         </P>
         <List>
           <LI>
-            <Term>Supabase</Term> — database, authentication, and storage of your
+            <Term>Supabase</Term>: database, authentication, and storage of your
             account and financial data.
           </LI>
           <LI>
-            <Term>Vercel</Term> — application hosting and delivery.
+            <Term>Vercel</Term>: application hosting and delivery.
           </LI>
           <LI>
-            <Term>Google</Term> — sign-in (OAuth). Google&rsquo;s handling of
+            <Term>Google</Term>: sign-in (OAuth). Google&rsquo;s handling of
             your account is governed by its own privacy policy.
           </LI>
           <LI>
-            <Term>Yahoo Finance</Term> and <Term>frankfurter.dev (ECB)</Term> —
+            <Term>Yahoo Finance</Term> and <Term>frankfurter.dev (ECB)</Term>:
             market prices and exchange rates. These requests are made by our
             servers and do not include your personal information.
           </LI>
@@ -136,8 +136,8 @@ export default function PrivacyPage() {
           <LI>Delete your account and the data tied to it.</LI>
           <LI>Withdraw consent or object to certain processing.</LI>
           <LI>
-            Lodge a complaint with a supervisory authority — the Office of the
-            Privacy Commissioner of Canada, or your local EEA/UK regulator.
+            Lodge a complaint with a supervisory authority, such as the Office of
+            the Privacy Commissioner of Canada, or your local EEA/UK regulator.
           </LI>
         </List>
         <P>

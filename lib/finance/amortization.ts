@@ -99,7 +99,7 @@ export function buildSchedule(
   return rows;
 }
 
-// The month/year a loan finishes, `months` from today. Day is dropped — these
+// The month/year a loan finishes, `months` from today. Day is dropped - these
 // projections are monthly. Returns null when payoff is not reached.
 export function payoffDateLabel(months: number): string | null {
   if (!Number.isFinite(months)) return null;

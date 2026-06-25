@@ -1,4 +1,4 @@
--- CXNET — cross-currency debt payments
+-- CXNET - cross-currency debt payments
 -- A debt payment is denominated in the debt's currency, but the cash account it
 -- draws from may hold a different currency. account_amount records how much left
 -- (or arrived in) the account, in the account's own currency, so the account

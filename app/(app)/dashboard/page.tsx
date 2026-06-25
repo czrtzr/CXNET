@@ -46,7 +46,7 @@ function startOfTodayUtc(): string {
 
 // Parse a date-only column ("YYYY-MM-DD") at local midnight, not UTC. The graph
 // and change views bucket in local time, so a UTC parse pushes today's entries
-// into yesterday for any viewer behind UTC — which read as a zero for today.
+// into yesterday for any viewer behind UTC - which read as a zero for today.
 function localDayMs(date: string): number {
   return new Date(`${date}T00:00:00`).getTime();
 }
@@ -136,7 +136,7 @@ export default async function DashboardPage() {
   }
 
   // A position linked to an account mirrors into that account's balance, so it is
-  // counted under accounts and excluded from the standalone investments figure —
+  // counted under accounts and excluded from the standalone investments figure -
   // never both. Allocation still reflects asset class for every position, linked
   // or not, so the donut reads by what a holding *is*, not where it sits.
   let investmentsTotal = 0;

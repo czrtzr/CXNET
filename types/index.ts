@@ -215,7 +215,7 @@ export type AccountLogEntry = {
 };
 
 // ---------------------------------------------------------------------------
-// Assets, liabilities, and debt payments — the balance sheet beyond cash and
+// Assets, liabilities, and debt payments - the balance sheet beyond cash and
 // investments.
 // ---------------------------------------------------------------------------
 export const ASSET_TYPES = ["property", "vehicle", "other"] as const;

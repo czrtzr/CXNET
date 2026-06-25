@@ -31,7 +31,7 @@ import { Amount } from "@/components/ui/Amount";
 import { Badge } from "@/components/ui/Badge";
 import { Card } from "@/components/ui/Card";
 import { Modal } from "@/components/ui/Modal";
-import { useToast } from "@/components/ui/Toast";
+import { useToast, useDemoGuard } from "@/components/ui/Toast";
 import { PageTransition } from "@/components/layout/PageTransition";
 import { DrawUnderline } from "@/components/svg/DrawUnderline";
 import { BalanceBeam } from "@/components/svg/BalanceBeam";
@@ -135,6 +135,7 @@ export function NetWorthView({
   const [editingLiability, setEditingLiability] = useState<Liability | null>(null);
   const [payingLiability, setPayingLiability] = useState<Liability | null>(null);
   const { toast } = useToast();
+  const guard = useDemoGuard(canWrite);
 
   const accountNames = new Map(accounts.map((a) => [a.id, a.name]));
   const paymentsByLiability = new Map<string, DebtPayment[]>();
@@ -335,18 +336,18 @@ export function NetWorthView({
   }
 
   const rowActions = (onEdit: () => void, onRemove: () => void, isTemp: boolean) =>
-    canWrite && !isTemp ? (
+    !isTemp ? (
       <div className="ml-auto flex items-center gap-1 opacity-0 transition group-hover:opacity-100">
         <button
           type="button"
-          onClick={onEdit}
+          onClick={guard(onEdit)}
           className="rounded-sm px-2 py-1 text-xs text-text-muted transition hover:bg-surface-hover hover:text-text"
         >
           Edit
         </button>
         <button
           type="button"
-          onClick={onRemove}
+          onClick={guard(onRemove)}
           className="rounded-sm px-2 py-1 text-xs text-text-muted transition hover:bg-surface-hover hover:text-neg"
         >
           Remove
@@ -442,7 +443,7 @@ export function NetWorthView({
                       after <Amount value={debt} currency={asset.currency} tone="muted" /> owed
                     </p>
                   ) : null}
-                  {canWrite && !isTemp ? (
+                  {!isTemp ? (
                     <div className="mt-3 flex border-t border-border pt-2">
                       {rowActions(
                         () => {
@@ -485,11 +486,11 @@ export function NetWorthView({
                         onRemove={removePayment}
                       />
 
-                      {canWrite && !isTemp ? (
+                      {!isTemp ? (
                         <div className="mt-3 flex items-center border-t border-border pt-2">
                           <button
                             type="button"
-                            onClick={() => setPayingLiability(l)}
+                            onClick={guard(() => setPayingLiability(l))}
                             className="rounded-sm px-2 py-1 text-xs text-pos transition hover:bg-surface-hover"
                           >
                             Record receipt
@@ -512,18 +513,16 @@ export function NetWorthView({
           </div>
         ) : null}
 
-        {canWrite ? (
-          <button
-            type="button"
-            onClick={() => {
-              setEditingAsset(null);
-              setAssetOpen(true);
-            }}
-            className="mt-3 flex w-full items-center justify-center gap-2 rounded-sm border border-dashed border-border px-4 py-3 text-sm text-text-muted transition hover:border-border-strong hover:text-text"
-          >
-            + Add asset
-          </button>
-        ) : null}
+        <button
+          type="button"
+          onClick={guard(() => {
+            setEditingAsset(null);
+            setAssetOpen(true);
+          })}
+          className="mt-3 flex w-full items-center justify-center gap-2 rounded-sm border border-dashed border-border px-4 py-3 text-sm text-text-muted transition hover:border-border-strong hover:text-text"
+        >
+          + Add asset
+        </button>
       </div>
 
       {/* Liabilities */}
@@ -609,11 +608,11 @@ export function NetWorthView({
                     onRemove={removePayment}
                   />
 
-                  {canWrite && !isTemp ? (
+                  {!isTemp ? (
                     <div className="mt-3 flex items-center border-t border-border pt-2">
                       <button
                         type="button"
-                        onClick={() => setPayingLiability(l)}
+                        onClick={guard(() => setPayingLiability(l))}
                         className="rounded-sm px-2 py-1 text-xs text-red-bright transition hover:bg-surface-hover"
                       >
                         Record payment
@@ -634,18 +633,16 @@ export function NetWorthView({
           })}
         </div>
 
-        {canWrite ? (
-          <button
-            type="button"
-            onClick={() => {
-              setEditingLiability(null);
-              setLiabilityOpen(true);
-            }}
-            className="mt-3 flex w-full items-center justify-center gap-2 rounded-sm border border-dashed border-border px-4 py-3 text-sm text-text-muted transition hover:border-border-strong hover:text-text"
-          >
-            + Add debt
-          </button>
-        ) : null}
+        <button
+          type="button"
+          onClick={guard(() => {
+            setEditingLiability(null);
+            setLiabilityOpen(true);
+          })}
+          className="mt-3 flex w-full items-center justify-center gap-2 rounded-sm border border-dashed border-border px-4 py-3 text-sm text-text-muted transition hover:border-border-strong hover:text-text"
+        >
+          + Add debt
+        </button>
       </div>
 
       <Modal
@@ -695,8 +692,8 @@ export function NetWorthView({
         onClose={() => setPayingLiability(null)}
         title={
           payingLiability?.direction === "owed_to_me"
-            ? `Record receipt — ${payingLiability?.name}`
-            : `Record payment — ${payingLiability?.name ?? ""}`
+            ? `Record receipt · ${payingLiability?.name}`
+            : `Record payment · ${payingLiability?.name ?? ""}`
         }
       >
         {payingLiability ? (

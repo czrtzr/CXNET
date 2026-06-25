@@ -123,7 +123,7 @@ export type Bucket = {
 // Net-worth trend as one point per calendar day across the window, carrying the
 // last known balance forward over days with no snapshot. Net worth is a running
 // balance, so an un-visited day holds the previous reading rather than vanishing
-// — which keeps the x-axis true to time (a week gap reads as a week, not one
+// - which keeps the x-axis true to time (a week gap reads as a week, not one
 // step) and the line continuous. Snapshots are assumed at most one per day.
 export function fillDailyTrend(points: TrendPoint[], range: Range): TrendPoint[] {
   if (points.length === 0) return points;

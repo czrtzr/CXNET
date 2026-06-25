@@ -1,4 +1,4 @@
--- CXNET — accounts, balance posting, and transfers
+-- CXNET - accounts, balance posting, and transfers
 -- Income and expenses now post to a cash account's balance (the savings rows are
 -- the accounts). Each entry stores the signed delta it applied, in the account's
 -- currency, so an edit or delete reverses exactly. Transfers move balance between
@@ -31,7 +31,7 @@ create index idx_income_account   on public.income (account_id);
 create index idx_expenses_account on public.expenses (account_id);
 
 -- ---------------------------------------------------------------------------
--- transfers — an explicit, audited move of balance between two accounts.
+-- transfers - an explicit, audited move of balance between two accounts.
 -- Cross-currency is captured honestly with a separate amount on each side, so
 -- there is never an ambiguous single figure. A transfer between two cash
 -- accounts leaves net worth unchanged.

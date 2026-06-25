@@ -3,7 +3,7 @@
 import { motion, useReducedMotion, type HTMLMotionProps } from "motion/react";
 import type { ReactNode } from "react";
 
-// The house easing — a confident settle, used everywhere so motion reads as one
+// The house easing - a confident settle, used everywhere so motion reads as one
 // language across screens.
 export const EASE = [0.22, 1, 0.36, 1] as const;
 

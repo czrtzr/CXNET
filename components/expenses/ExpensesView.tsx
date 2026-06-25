@@ -14,7 +14,7 @@ import { Amount } from "@/components/ui/Amount";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { Modal } from "@/components/ui/Modal";
-import { useToast } from "@/components/ui/Toast";
+import { useToast, useDemoGuard } from "@/components/ui/Toast";
 import { PageTransition } from "@/components/layout/PageTransition";
 import { AnimatedList, AnimatedItem } from "@/components/motion/AnimatedList";
 import { Reveal } from "@/components/motion/Reveal";
@@ -22,6 +22,12 @@ import { DrawUnderline } from "@/components/svg/DrawUnderline";
 import { PulseLine } from "@/components/svg/PulseLine";
 import { EmptyState } from "@/components/finance/EmptyState";
 import { ChangeView } from "@/components/finance/ChangeView";
+import { FilterBar } from "@/components/finance/FilterBar";
+import {
+  EMPTY_FILTERS,
+  matchesFilters,
+  type EntryFilters,
+} from "@/lib/finance/filters";
 import { ExpenseForm } from "./ExpenseForm";
 
 type Props = {
@@ -76,9 +82,32 @@ export function ExpensesView({
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<Expense | null>(null);
   const { toast } = useToast();
+  const guard = useDemoGuard(canWrite);
+  const [filters, setFilters] = useState<EntryFilters>(EMPTY_FILTERS);
 
   const categoryById = new Map(categories.map((c) => [c.id, c]));
   const accountMap = new Map(accounts.map((a) => [a.id, a]));
+
+  // Only the categories and accounts the entries actually use, plus an "all"
+  // entry, so the dropdowns never offer a choice that filters to nothing.
+  const usedCategoryIds = new Set(rows.map((r) => r.category_id).filter(Boolean));
+  const usedAccountIds = new Set(rows.map((r) => r.account_id).filter(Boolean));
+  const categoryOptions = [
+    { value: "", label: "All categories" },
+    ...categories
+      .filter((c) => usedCategoryIds.has(c.id))
+      .map((c) => ({ value: c.id, label: c.name })),
+  ];
+  const accountOptions = [
+    { value: "", label: "All accounts" },
+    ...accounts
+      .filter((a) => usedAccountIds.has(a.id))
+      .map((a) => ({ value: a.id, label: a.account_name, hint: a.currency })),
+  ];
+
+  const filtered = optimistic.filter((r) =>
+    matchesFilters(r, filters, (row) => row.description),
+  );
 
   let total = 0;
   let unconverted = 0;
@@ -102,7 +131,7 @@ export function ExpensesView({
 
   // Group newest first by calendar month for the list.
   const groups: { label: string; rows: Expense[] }[] = [];
-  for (const row of optimistic) {
+  for (const row of filtered) {
     const label = monthLabel(row.date);
     const last = groups[groups.length - 1];
     if (last && last.label === label) last.rows.push(row);
@@ -178,16 +207,14 @@ export function ExpensesView({
           </p>
         </div>
         <div className="flex flex-col items-end gap-3">
-          {canWrite ? (
-            <Button
-              onClick={() => {
-                setEditing(null);
-                setOpen(true);
-              }}
-            >
-              Add expense
-            </Button>
-          ) : null}
+          <Button
+            onClick={guard(() => {
+              setEditing(null);
+              setOpen(true);
+            })}
+          >
+            Add expense
+          </Button>
           <PulseLine
             width={140}
             height={30}
@@ -211,25 +238,38 @@ export function ExpensesView({
         canWrite={canWrite}
       />
 
+      {optimistic.length > 0 ? (
+        <FilterBar
+          filters={filters}
+          onChange={setFilters}
+          categoryOptions={categoryOptions}
+          accountOptions={accountOptions}
+          searchPlaceholder="Search by description or note"
+        />
+      ) : null}
+
       {optimistic.length === 0 ? (
         <EmptyState
           title="No expenses yet"
           hint="Log what leaves the account to watch your spending by category and month."
           action={
-            canWrite ? (
-              <Button
-                onClick={() => {
-                  setEditing(null);
-                  setOpen(true);
-                }}
-              >
-                Add expense
-              </Button>
-            ) : undefined
+            <Button
+              onClick={guard(() => {
+                setEditing(null);
+                setOpen(true);
+              })}
+            >
+              Add expense
+            </Button>
           }
         />
+      ) : filtered.length === 0 ? (
+        <EmptyState
+          title="No matches"
+          hint="No expenses fit these filters. Try widening the range or clearing them."
+        />
       ) : (
-        <div className="mt-8 flex flex-col gap-6">
+        <div className="mt-4 flex flex-col gap-6">
           {groups.map((group, gi) => (
             <Reveal key={group.label} delay={gi * 0.05}>
               <p className="mb-2 text-xs uppercase tracking-[0.18em] text-text-faint">
@@ -274,21 +314,21 @@ export function ExpensesView({
                             code
                             className="text-sm"
                           />
-                          {canWrite && !isTemp ? (
+                          {!isTemp ? (
                             <div className="flex items-center gap-1 opacity-0 transition group-hover:opacity-100">
                               <button
                                 type="button"
-                                onClick={() => {
+                                onClick={guard(() => {
                                   setEditing(row);
                                   setOpen(true);
-                                }}
+                                })}
                                 className="rounded-sm px-2 py-1 text-xs text-text-muted transition hover:bg-surface-hover hover:text-text"
                               >
                                 Edit
                               </button>
                               <button
                                 type="button"
-                                onClick={() => remove(row)}
+                                onClick={guard(() => remove(row))}
                                 className="rounded-sm px-2 py-1 text-xs text-text-muted transition hover:bg-surface-hover hover:text-neg"
                               >
                                 Remove
