@@ -106,8 +106,9 @@ export default function DataPage() {
           Your records persist while your account is active. On a deletion
           request we remove your profile and financial rows; because of
           row-level ownership, deleting your account removes the data tied to it.
-          Provider backups age out on a rolling schedule. Request deletion or an
-          export of your data at{" "}
+          Provider backups age out on a rolling schedule. You can export your data
+          at any time from Settings using <Term>Download my data</Term>, and you
+          can request deletion at{" "}
           <a
             href="mailto:feitcarter@gmail.com"
             className="text-text underline decoration-border-strong underline-offset-4 transition hover:decoration-brass"

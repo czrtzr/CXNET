@@ -7,6 +7,7 @@ import { CURRENCIES, CURRENCY_OPTIONS } from "@/lib/finance/currencies";
 import {
   updateBaseCurrency,
   updateDefaultAccounts,
+  exportData,
 } from "@/app/(app)/settings/actions";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
@@ -16,6 +17,7 @@ import { PageTransition } from "@/components/layout/PageTransition";
 import { Reveal } from "@/components/motion/Reveal";
 import { PulseLine } from "@/components/svg/PulseLine";
 import { DrawUnderline } from "@/components/svg/DrawUnderline";
+import { McpConnectCard, type McpTokenRow } from "./McpConnectCard";
 
 type Props = {
   base: string;
@@ -24,6 +26,8 @@ type Props = {
   defaultIncomeAccountId: string | null;
   defaultExpenseAccountId: string | null;
   canWrite: boolean;
+  mcpTokens: McpTokenRow[];
+  connectorUrl: string;
 };
 
 function currencyName(code: string): string {
@@ -37,6 +41,8 @@ export function SettingsView({
   defaultIncomeAccountId,
   defaultExpenseAccountId,
   canWrite,
+  mcpTokens,
+  connectorUrl,
 }: Props) {
   const [choice, setChoice] = useState(base);
   const [saved, setSaved] = useState(base);
@@ -94,6 +100,33 @@ export function SettingsView({
       } else {
         toast(res.error, "error");
       }
+    });
+  }
+
+  // Pull every owned row and hand the user a JSON file. The browser never holds
+  // the data until they ask; the action gathers it fresh on each download.
+  const [exporting, startExport] = useTransition();
+
+  function download() {
+    startExport(async () => {
+      const res = await exportData();
+      if (!res.ok) {
+        toast(res.error, "error");
+        return;
+      }
+      const blob = new Blob([JSON.stringify(res.data, null, 2)], {
+        type: "application/json",
+      });
+      const url = URL.createObjectURL(blob);
+      const stamp = new Date().toISOString().slice(0, 10);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `cxnet-export-${stamp}.json`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+      toast("Your data is downloading.", "success");
     });
   }
 
@@ -194,6 +227,35 @@ export function SettingsView({
       </Reveal>
 
       <Reveal delay={0.24} className="mt-4 max-w-xl">
+        <Card className="px-5 py-5">
+        <div className="flex flex-col gap-1">
+          <p className="text-sm text-text">Your data</p>
+          <p className="text-xs text-text-muted">
+            Download everything you have entered as a single JSON file: accounts,
+            income and expenses, investments, assets, liabilities, transfers,
+            recurring rules, and reconciliation history.
+          </p>
+        </div>
+
+        <div className="mt-5 flex justify-end">
+          <Button
+            onClick={download}
+            disabled={exporting}
+            variant="outline"
+          >
+            {exporting ? "Preparing" : "Download my data"}
+          </Button>
+        </div>
+        </Card>
+      </Reveal>
+
+      <McpConnectCard
+        tokens={mcpTokens}
+        connectorUrl={connectorUrl}
+        canWrite={canWrite}
+      />
+
+      <Reveal delay={0.32} className="mt-4 max-w-xl">
         <Card className="px-5 py-5">
         <div className="flex flex-col gap-1">
           <p className="text-sm text-text">Legal</p>

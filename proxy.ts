@@ -14,8 +14,9 @@ import {
 // Route protection here is a convenience redirect. Row Level Security in the
 // database is the real backstop, never this.
 
-// Paths that never require a session.
-const PUBLIC_PATHS = ["/login", "/auth", "/forgot-password", "/legal"];
+// Paths that never require a session. /api/mcp authenticates itself with a
+// bearer token (no session cookie), so the redirect guard must leave it alone.
+const PUBLIC_PATHS = ["/login", "/auth", "/forgot-password", "/legal", "/api/mcp"];
 
 function isPublicPath(pathname: string): boolean {
   if (pathname === "/") return true;

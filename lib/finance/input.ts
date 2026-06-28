@@ -34,3 +34,13 @@ export function cleanText(value: unknown, max: number): string | null {
 export function isHexColor(value: unknown): value is string {
   return typeof value === "string" && /^#[0-9a-fA-F]{6}$/.test(value);
 }
+
+// Normalize an email to a clean lowercase address, or null when it is not a
+// plausible address. Deliberately permissive on the local part; the real
+// gatekeeper is that the address must exist on the allowlist before signup.
+export function normalizeEmail(value: unknown): string | null {
+  if (typeof value !== "string") return null;
+  const trimmed = value.trim().toLowerCase();
+  if (trimmed.length > 254) return null;
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmed) ? trimmed : null;
+}
